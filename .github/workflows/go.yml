@@ -11,10 +11,7 @@ jobs:
         runs-on: ${{ matrix.platform }}
         steps:
         - name: Start MongoDB
-          uses: supercharge/mongodb-github-action@1.2.0
-          with:
-            mongodb-version: ${{ matrix.mongodb-version }}
-            mongodb-replica-set: test-rs
+          run:  sudo docker run --name mongo -d -p 27017:27017 mongo
 
         - name: Install Go
           uses: actions/setup-go@v1
