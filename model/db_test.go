@@ -22,6 +22,6 @@ func TestDatabase(t *testing.T) {
 
 	_, err := mongo.Connect(ctx, options.Client().ApplyURI(os.Getenv("DB_Host")))
 	if err != nil {
-		t.Errorf(err.Error())
+		t.Errorf(err.Error() + "jfjfjjfj")
 	}
 }
