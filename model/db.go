@@ -19,7 +19,7 @@ func init() {
 	var err error
 
 	ctx, cancel = context.WithTimeout(context.Background(), 10*time.Second)
-	dbHost := os.Getenv("DBHost")
+	dbHost := os.Getenv("DB_Host")
 	db, err = mongo.Connect(ctx, options.Client().ApplyURI(dbHost))
 
 	if err != nil {
