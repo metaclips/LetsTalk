@@ -10,7 +10,7 @@ jobs:
 
         runs-on: ${{ matrix.platform }}
         steps:
-        - name: Start MongoDB
+        - name: Start MongoDB using Docker
           run:  sudo docker run --name mongo -d -p 27017:27017 mongo
 
         - name: Install Go
@@ -21,7 +21,7 @@ jobs:
         - name: Checkout code
           uses: actions/checkout@v2
 
-        - name: Test
+        - name: Start tests
           env: 
             DB_Action_Host: ${{ secrets.DB_Action_Host }}
           run: go test -race ./...
