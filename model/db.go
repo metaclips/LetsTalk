@@ -23,7 +23,7 @@ func init() {
 	db, err = mongo.Connect(ctx, options.Client().ApplyURI(dbHost))
 
 	if err != nil {
-		log.Fatalln(err)
+		log.Fatalln(err, "Host file is", dbHost)
 	}
 
 	// Ping mongo database if up
