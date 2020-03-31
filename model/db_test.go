@@ -1,14 +1,12 @@
 package model
 
 import (
-	"fmt"
 	"os"
 	"testing"
 )
 
 func TestEnvironmentVariable(t *testing.T) {
-	fmt.Println(os.Getenv("DBHost"), 1)
-	if os.Getenv("DBHost") == "" {
+	if os.Getenv("DB_Host") == "" {
 		t.Error("Environment variable not set")
 	}
 }
