@@ -23,7 +23,7 @@ jobs:
 
         - name: Test
           env: 
-            DB_Host: ${{ secrets.DB_Action_Host }}
+            DB_Action_Host: ${{ secrets.DB_Action_Host }}
           run: go test -race ./...
 
         - name: Install linter
