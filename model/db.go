@@ -15,7 +15,7 @@ var db *mongo.Client
 var ctx context.Context
 var cancel func()
 
-func init() {
+func InitDB() {
 	var err error
 
 	ctx, cancel = context.WithTimeout(context.Background(), 10*time.Second)
