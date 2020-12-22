@@ -1,7 +1,6 @@
 package model
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/at-wat/ebml-go/webm"
@@ -121,7 +120,7 @@ func (s *webmWriter) pushVP8(rtpPacket *rtp.Packet) {
 }
 
 func (s *webmWriter) close() {
-	fmt.Printf("Finalizing webm...\n")
+	log.Info("Finalizing webm...\n")
 	if s.audioWriter != nil {
 		if err := s.audioWriter.Close(); err != nil {
 			log.Errorln("error closing audio writer", err)

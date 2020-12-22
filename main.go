@@ -36,7 +36,7 @@ func main() {
 		port = os.Getenv("PORT")
 	}
 	if port == "" {
-		port = "8080"
+		port = "8081"
 	}
 
 	router.ServeFiles("/assets/*filepath", http.Dir("./views/assets"))
