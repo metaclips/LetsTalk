@@ -16,7 +16,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"golang.org/x/crypto/bcrypt"
 
-	"github.com/metaclips/LetsTalk/backend/values"
+	"github.com/metaclips/LetsTalk/api/values"
 )
 
 func (b User) CreateUser(r *http.Request) error {

@@ -11,7 +11,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/mongo"
 
-	"github.com/metaclips/LetsTalk/backend/values"
+	"github.com/metaclips/LetsTalk/api/values"
 )
 
 type messageBytes []byte

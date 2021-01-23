@@ -1,4 +1,4 @@
-package model
+package conn
 
 import (
 	"encoding/json"
@@ -10,7 +10,9 @@ import (
 
 	"github.com/gorilla/websocket"
 
-	"github.com/metaclips/LetsTalk/backend/values"
+	"github.com/metaclips/LetsTalk/api/pkg/rooms"
+	"github.com/metaclips/LetsTalk/api/pkg/users"
+	"github.com/metaclips/LetsTalk/api/values"
 )
 
 const (
@@ -47,10 +49,9 @@ func (h *hub) RegisterWS(ws *websocket.Conn, email string) {
 	log.Infoln("user", email, "Connected")
 	go s.readPump(email)
 	go s.writePump()
-
 }
 
-func (h *hub) Run() {
+func (h *hub) Run(roomsHandler *rooms.RoomHandler, usersHandler *users.UserHandler) {
 	Upgrader.CheckOrigin = func(r *http.Request) bool {
 		host := r.Header.Get("Origin")
 
@@ -78,7 +79,7 @@ func (h *hub) Run() {
 			h.users.users[s.user][s.conn] = true
 
 			log.Infoln(s.user, "registered")
-			go broadcastOnlineStatusToAllUserRoom(s.user, true)
+			go broadcastOnlineStatusToAllUserRoom(usersHandler, roomsHandler, s.user, true)
 			h.users.mutex.Unlock()
 
 		case s := <-h.unRegister:
@@ -90,7 +91,7 @@ func (h *hub) Run() {
 					close(s.conn.send)
 					if len(connections) == 0 {
 						delete(h.users.users, s.user)
-						go broadcastOnlineStatusToAllUserRoom(s.user, false)
+						go broadcastOnlineStatusToAllUserRoom(usersHandler, roomsHandler, s.user, false)
 						log.Infoln(s.user, "offline")
 					}
 					log.Infoln(s.user, "subscription removed")
@@ -111,7 +112,7 @@ func (h *hub) Run() {
 						h.users.mutex.Lock()
 						delete(h.users.users, m.user)
 						h.users.mutex.Unlock()
-						go broadcastOnlineStatusToAllUserRoom(m.user, false)
+						go broadcastOnlineStatusToAllUserRoom(usersHandler, roomsHandler, m.user, false)
 					}
 				}
 			}
@@ -120,7 +121,7 @@ func (h *hub) Run() {
 	}
 }
 
-func (h *hub) sendMessage(msg []byte, user string) {
+func (h *hub) SendMessage(msg []byte, user string) {
 	m := wsMessage{msg, user}
 	HubConstruct.broadcast <- m
 }

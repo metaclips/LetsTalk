@@ -8,7 +8,7 @@ import (
 	"github.com/gorilla/securecookie"
 	"go.mongodb.org/mongo-driver/bson"
 
-	"github.com/metaclips/LetsTalk/backend/values"
+	"github.com/metaclips/LetsTalk/api/values"
 )
 
 var cookieHandler = securecookie.New(securecookie.GenerateRandomKey(64), securecookie.GenerateRandomKey(32))

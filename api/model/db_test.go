@@ -8,7 +8,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 
-	"github.com/metaclips/LetsTalk/backend/values"
+	"github.com/metaclips/LetsTalk/api/values"
 )
 
 func TestDatabase(t *testing.T) {

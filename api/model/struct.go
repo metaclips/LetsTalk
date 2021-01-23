@@ -28,13 +28,12 @@ type CookieData struct {
 }
 
 type User struct {
-	Email string `bson:"_id" json:"userID"`
-	Name  string `bson:"name" json:"name"`
-	DOB   string `bson:"age" json:"age"`
-	Class string `bson:"class" json:"class"`
-	// ID should either be users matric or leading email stripping @....
+	Email            string        `bson:"_id" json:"userID"`
+	Name             string        `bson:"name" json:"name"`
+	DOB              string        `bson:"age" json:"age"`
+	Class            string        `bson:"class" json:"class"`
 	Password         []byte        `bson:"password" json:"-"`
-	PasswordInString string        `bson:"-" json:"password"`
+	PasswordInString string        `bson:"-" json:"password"` // Password when sent by client for registration purposes.
 	RoomsJoined      []roomsJoined `bson:"roomsJoined" json:"roomsJoined"`
 	JoinRequest      []joinRequest `bson:"joinRequest" json:"joinRequest"`
 	UUID             string        `bson:"loginUUID" json:"uuid"`

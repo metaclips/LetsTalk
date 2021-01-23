@@ -9,7 +9,7 @@ import (
 
 	"github.com/julienschmidt/httprouter"
 
-	"github.com/metaclips/LetsTalk/backend/model"
+	"github.com/metaclips/LetsTalk/api/model"
 )
 
 func HomePageLoginPost(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {

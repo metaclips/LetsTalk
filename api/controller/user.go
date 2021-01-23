@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/julienschmidt/httprouter"
-	"github.com/metaclips/LetsTalk/backend/model"
+	"github.com/metaclips/LetsTalk/api/model"
 	log "github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/mongo"
 )

@@ -9,9 +9,9 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/julienschmidt/httprouter"
-	"github.com/metaclips/LetsTalk/backend/controller"
-	"github.com/metaclips/LetsTalk/backend/model"
-	"github.com/metaclips/LetsTalk/backend/values"
+	"github.com/metaclips/LetsTalk/api/controller"
+	"github.com/metaclips/LetsTalk/api/model"
+	"github.com/metaclips/LetsTalk/api/values"
 	"github.com/rs/cors"
 )
 

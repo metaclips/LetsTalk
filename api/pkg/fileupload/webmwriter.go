@@ -1,22 +1,29 @@
-package model
+package fileupload
 
 import (
+	"errors"
 	"os"
-
-	"github.com/at-wat/ebml-go/webm"
-	"github.com/pion/rtp"
-	"github.com/pion/rtp/codecs"
-	"github.com/pion/webrtc/v2/pkg/media/samplebuilder"
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/metaclips/LetsTalk/backend/values"
+	"github.com/at-wat/ebml-go/webm"
+	"github.com/metaclips/LetsTalk/api/pkg/dropbox"
+	"github.com/pion/rtp"
+	"github.com/pion/rtp/codecs"
+	"github.com/pion/webrtc/v2/pkg/media/samplebuilder"
 )
 
-// newWebmWriter writes video class session to either be upload to a Dropbox drive
+type webmWriter struct {
+	dropbox                        *dropbox.Dropbox
+	fileName                       string
+	audioWriter, videoWriter       webm.BlockWriteCloser
+	audioBuilder, videoBuilder     *samplebuilder.SampleBuilder
+	audioTimestamp, videoTimestamp uint32
+}
+
+// NewWebmWriter writes video class session to either be upload to a Dropbox drive
 // or if a token is not specified, saved to mongodb using gridFS.
-// ToDo: Allow users access to download from DB if file is saved using gridFS.
-func newWebmWriter(fileName string) *webmWriter {
+func NewWebmWriter(fileName string) FileUpload {
 	return &webmWriter{
 		fileName:     fileName,
 		audioBuilder: samplebuilder.New(10, &codecs.OpusPacket{}),
@@ -66,7 +73,7 @@ func (s *webmWriter) initWriter(width, height int) {
 }
 
 // Append Audi file.
-func (s *webmWriter) pushOpus(rtpPacket *rtp.Packet) {
+func (s *webmWriter) AddAudioChunk(rtpPacket *rtp.Packet) {
 	s.audioBuilder.Push(rtpPacket)
 
 	for {
@@ -86,7 +93,7 @@ func (s *webmWriter) pushOpus(rtpPacket *rtp.Packet) {
 }
 
 // Push to video.
-func (s *webmWriter) pushVP8(rtpPacket *rtp.Packet) {
+func (s *webmWriter) AddVideoChunk(rtpPacket *rtp.Packet) {
 	s.videoBuilder.Push(rtpPacket)
 
 	for {
@@ -119,56 +126,38 @@ func (s *webmWriter) pushVP8(rtpPacket *rtp.Packet) {
 	}
 }
 
-func (s *webmWriter) close() {
+func (s *webmWriter) Close() error {
 	log.Info("Finalizing webm...\n")
 	if s.audioWriter != nil {
 		if err := s.audioWriter.Close(); err != nil {
-			log.Errorln("error closing audio writer", err)
+			return err
 		}
 	}
 
 	if s.videoWriter != nil {
 		if err := s.videoWriter.Close(); err != nil {
-			log.Errorln("error closing video writer", err)
+			return err
 		}
 	}
 
 	log.Infoln("video writer closed for session, uploading.", s.fileName)
+	return nil
 }
 
-func (s *webmWriter) getVideoFileSharableLink() (string, error) {
-	if values.Config.DropboxToken != "" {
-		dropBoxUploader, err := newDropboxUploader(s.fileName)
-		if err != nil {
-			log.Errorln("unable to initialize dropbox uploader", err)
-			return "", err
-		}
-
-		link, err := dropBoxUploader.dropboxFileUploader()
-		if err != nil {
-			log.Errorln("unable to get dropbox sharable link", err)
-			return "", err
-		}
-
-		log.Infoln("file uploaded to file server")
-
-		return link, nil
+func (s *webmWriter) UploadFile() error {
+	d, err := dropbox.NewDropbox(s.fileName)
+	if err != nil {
+		return err
 	}
 
-	return "", nil
+	s.dropbox = d
+
+	return s.dropbox.UploadFile()
 }
 
-func (s *webmWriter) uploadToDB() {
-	defer func() {
-		if err := os.Remove(s.fileName); err != nil {
-			log.Errorln("unable to remove file", err)
-		}
-	}()
-
-	if err := uploadFileGridFS(s.fileName); err != nil {
-		log.Errorln("error saving file to DB", err)
-		return
+func (s *webmWriter) GetUploadLink() (string, error) {
+	if s.dropbox == nil {
+		return "", errors.New("dropbox instance not created")
 	}
-
-	log.Println("File uploaded to DB")
+	return s.dropbox.GetUploadLink()
 }
