@@ -29,6 +29,7 @@ func main() {
 	router.GET("/ws", controller.ServeWs)
 	router.GET("/login", controller.LoginPageGet)
 	router.GET("/register", controller.RegisterPageGet)
+	router.GET("/logout", controller.Logout)
 
 	router.POST("/login", controller.HomePageLoginPost)
 	router.POST("/register", controller.RegisterUserPost)

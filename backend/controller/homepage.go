@@ -119,6 +119,22 @@ func HomePageGet(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	}
 }
 
+func Logout(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	cookie := http.Cookie{
+		Name:     values.UserCookieName,
+		Value:    "",
+		HttpOnly: true,
+		MaxAge:   -1,
+		Path:     "/",
+	}
+
+	http.SetCookie(w, &cookie)
+
+	if err := templ.ExecuteTemplate(w, "login.html", nil); err != nil {
+		log.Errorln("error loading login template", err)
+	}
+}
+
 func sendResponse(w http.ResponseWriter, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	err := json.NewEncoder(w).Encode(data)

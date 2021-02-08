@@ -34,6 +34,7 @@
           >
             <v-card
               v-if="showNotificationDialog"
+              class="mx-5"
               height="min-content"
               outlined
               shaped
@@ -108,7 +109,13 @@
               </v-row>
             </v-card>
 
-            <v-card flat outlined shaped v-else-if="showAddRoomDialog">
+            <v-card
+              class="mx-5"
+              flat
+              outlined
+              shaped
+              v-else-if="showAddRoomDialog"
+            >
               <v-row class="mx-5">
                 <v-col cols="12">
                   <v-card-text>
