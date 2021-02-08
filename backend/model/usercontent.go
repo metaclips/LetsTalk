@@ -1,7 +1,6 @@
 package model
 
 import (
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -182,16 +181,18 @@ func (b User) exitRoom(roomID string) ([]string, error) {
 	return room.RegisteredUsers, err
 }
 
-func (b User) CreateUserLogin(password string, w http.ResponseWriter) (string, error) {
+func (b User) CreateUserLogin(password string, w http.ResponseWriter) error {
 	if err := b.getUser(); err != nil {
-		return "", err
+		log.Errorln("error retrieving user from DB:", err)
+		return values.ErrRetrieveUser
 	}
 
 	if err := bcrypt.CompareHashAndPassword(b.Password, []byte(password)); err != nil {
-		return "", err
+		log.Errorln("error comparing users hash and password:", err)
+		return values.ErrPassCompare
 	}
 
-	token, err := CookieDetail{
+	err := CookieDetail{
 		Email:      b.Email,
 		Collection: values.UsersCollectionName,
 		CookieName: values.UserCookieName,
@@ -201,12 +202,18 @@ func (b User) CreateUserLogin(password string, w http.ResponseWriter) (string, e
 		},
 	}.GenerateCookie(w)
 
-	return token, err
+	if err != nil {
+		log.Errorln("error setting cookie:", err)
+		return values.ErrSetCookie
+	}
+
+	return nil
 }
 
 func (b User) validateUser(uniqueID string) error {
 	if err := b.getUser(); err != nil {
-		return err
+		log.Errorln("error retrieving user from DB:", err)
+		return values.ErrRetrieveUser
 	}
 
 	if b.UUID != uniqueID {
@@ -418,7 +425,7 @@ func (b joinRequest) requestUserToJoinRoom(userToJoinEmail string) ([]string, er
 	}
 
 	if !requesterLegit {
-		return nil, errors.New("invalid user made a RequestUsersToJoinRoom request Name: " + b.RequestingUserID)
+		return nil, values.ErrInvalidUserJoinRoomRequest
 	}
 
 	result = db.Collection(values.UsersCollectionName).FindOne(ctx, bson.M{"_id": userToJoinEmail})

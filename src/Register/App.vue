@@ -2,7 +2,7 @@
   <div id="app">
     <v-app>
       <v-main>
-        <router-view></router-view>
+        <Home />
       </v-main>
       <Footer />
     </v-app>
@@ -11,9 +11,13 @@
 
 <script lang="ts">
 import Vue from "vue";
+import Home from "../views/Register.vue";
 
 export default Vue.extend({
   name: "App",
+  components: {
+    Home: Home,
+  },
 
   data: () => ({
     //

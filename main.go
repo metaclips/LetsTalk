@@ -12,7 +12,6 @@ import (
 	"github.com/metaclips/LetsTalk/backend/controller"
 	"github.com/metaclips/LetsTalk/backend/model"
 	"github.com/metaclips/LetsTalk/backend/values"
-	"github.com/rs/cors"
 )
 
 func main() {
@@ -27,6 +26,7 @@ func main() {
 	router := httprouter.New()
 
 	router.GET("/ws", controller.ServeWs)
+	router.GET("/login", controller.HomePageLoginGet)
 
 	router.POST("/login", controller.HomePageLoginPost)
 	router.POST("/register", controller.RegisterUserPost)
@@ -39,26 +39,23 @@ func main() {
 		port = "8081"
 	}
 
-	router.ServeFiles("/assets/*filepath", http.Dir("./views/assets"))
-	log.Infoln("Webserver UP")
+	router.ServeFiles("/img/*filepath", http.Dir("./dist/img"))
+	router.ServeFiles("/js/*filepath", http.Dir("./dist/js"))
+	router.ServeFiles("/css/*filepath", http.Dir("./dist/css"))
+	router.ServeFiles("/favicon.ico/*filepath", http.Dir("./dist"))
 
-	handler := cors.New(cors.Options{
-		Debug:          true,
-		AllowedOrigins: values.Config.CorsAllowedOrigins,
-		AllowedMethods: []string{"GET", "POST"},
-		AllowedHeaders: []string{"Content-Type"},
-	}).Handler(router)
+	log.Infoln("Webserver UP")
 
 	// Optional use of TLS due to Heroku serving TLS at low level.
 	if values.Config.TLS.CertPath != "" && values.Config.TLS.KeyPath != "" {
-		if err := http.ListenAndServeTLS(":"+port, values.Config.TLS.CertPath, values.Config.TLS.KeyPath, handler); err != nil {
+		if err := http.ListenAndServeTLS(":"+port, values.Config.TLS.CertPath, values.Config.TLS.KeyPath, router); err != nil {
 			log.Fatalln(err)
 		}
 		return
 	}
 
 	// Note: without HTTPS users wont be able to login as SetCookie uses Secure flag.
-	if err := http.ListenAndServe(":"+port, handler); err != nil {
+	if err := http.ListenAndServe(":"+port, router); err != nil {
 		log.Fatalln(err)
 	}
 }

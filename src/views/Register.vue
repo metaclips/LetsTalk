@@ -115,7 +115,6 @@
 
 <script lang="ts">
 import Vue from "vue";
-import Axios from "axios";
 
 export default Vue.extend({
   name: "Register",
@@ -145,31 +144,6 @@ export default Vue.extend({
   },
 
   methods: {
-    registerUser() {
-      this.detailsDisabled = true;
-
-      Axios.post(process.env.VUE_APP_BACKEND_SERVER + "/register", "", {
-        params: {
-          email: this.email,
-          password: this.password,
-          name: this.name,
-          DOB: this.DOB, // For now, we use the - syntax.
-        },
-      })
-        .then((Response) => {
-          if (Response.status == 200) {
-            this.$router.push("/login");
-          }
-        })
-        .catch((Error) => {
-          this.detailsDisabled = false;
-
-          if (Error.response) {
-            this.registrationErrorDetails = Error.response.data;
-          }
-        });
-    },
-
     formatDate(date: string): string {
       if (!date) return "";
 

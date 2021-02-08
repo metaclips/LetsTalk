@@ -18,7 +18,7 @@ func ServeWs(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 
 	cookie := model.CookieDetail{CookieName: values.UserCookieName, Collection: values.UsersCollectionName}
 
-	if err := cookie.CheckCookie(r); err != nil {
+	if err := cookie.CheckCookie(r, values.UserCookieName); err != nil {
 		ws, err := model.Upgrader.Upgrade(w, r, nil)
 		if err != nil {
 			log.Errorln("error upgrading websocket while sending error message, err: ", err)

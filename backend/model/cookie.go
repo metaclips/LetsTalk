@@ -15,7 +15,7 @@ var cookieHandler = securecookie.New(securecookie.GenerateRandomKey(64), securec
 
 // GenerateCookie generates a token and sends to frontend.
 // Generated tokens are to be stored by frontend and verified for every request.
-func (b CookieDetail) GenerateCookie(w http.ResponseWriter) (string, error) {
+func (b CookieDetail) GenerateCookie(w http.ResponseWriter) error {
 	exitTime := time.Now().Add(time.Hour * 2).Local()
 	b.Data.ExitTime = exitTime
 	b.Data.UUID = uuid.New().String()
@@ -23,24 +23,36 @@ func (b CookieDetail) GenerateCookie(w http.ResponseWriter) (string, error) {
 	_, err := db.Collection(b.Collection).UpdateOne(ctx, bson.M{"_id": b.Email},
 		bson.M{"$set": bson.M{"loginUUID": b.Data.UUID, "expires": exitTime}})
 	if err != nil {
-		return "", err
+		return err
 	}
 
 	encoded, err := cookieHandler.Encode(b.CookieName, b.Data)
 	if err != nil {
-		return "", err
+		return err
 	}
 
-	return encoded, nil
+	http.SetCookie(w, &http.Cookie{
+		Name:     values.UserCookieName,
+		Value:    encoded,
+		Path:     b.Path,
+		Secure:   true,
+		HttpOnly: true,
+	})
+
+	return nil
 }
 
-func (b *CookieDetail) CheckCookie(r *http.Request) error {
-	cookie := r.FormValue("token")
-	if cookie == "" {
+func (b *CookieDetail) CheckCookie(r *http.Request, cookieName string) error {
+	cookie, err := r.Cookie(cookieName)
+	if err != nil {
+		return err
+	}
+
+	if cookie.Value == "" {
 		return values.ErrTokenNotSpecified
 	}
 
-	if err := cookieHandler.Decode(b.CookieName, cookie, &b.Data); err != nil {
+	if err := cookieHandler.Decode(b.CookieName, cookie.Value, &b.Data); err != nil {
 		return values.ErrInvalidToken
 	}
 
