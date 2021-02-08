@@ -145,6 +145,8 @@
 
             <ChatPage
               v-else
+              :userID="userID"
+              :names="names"
               :initiateFile="initiateFile"
               :fileUploadDownload="fileUploadDownload"
               :associates="usersOnline"
@@ -173,6 +175,8 @@
             <v-col cols="9">
               <ChatPage
                 v-if="showChatPage"
+                :userID="userID"
+                :names="names"
                 :initiateFile="initiateFile"
                 :fileUploadDownload="fileUploadDownload"
                 :associates="usersOnline"
@@ -237,8 +241,6 @@ let peerConnection: RTCPeerConnection;
 
 // @ is an alias to /src
 import Vue from "vue";
-import store from "@/store";
-import router from "@/router";
 import CryptoJS from "crypto-js";
 
 import { WSMessageType, MessageType, DefaultChunkSize } from "./Constants";
@@ -284,7 +286,8 @@ export default Vue.extend({
     classSessionConnectedUsers: {} as UsersOnline,
     fileUploadDownload: {} as FileDownload,
 
-    userID: store.state.email,
+    userID: "",
+    names: "",
     newRoomName: "",
     currentDownloadRoomID: "",
     dialogError: "",
@@ -306,8 +309,11 @@ export default Vue.extend({
 
   methods: {
     onUnAuthorizedAccess: function () {
-      router.push("/login");
-      socket.close();
+      this.redirectToLogin();
+    },
+
+    redirectToLogin: function () {
+      window.location.replace("/login");
     },
 
     activateAddRoomDialog: function () {
@@ -1225,26 +1231,7 @@ export default Vue.extend({
     },
 
     connectWebsocket: function () {
-      // Verify login, if token is specified.
-      if (store.state.token == "") {
-        router.push("/login");
-        return;
-      }
-
-      const URL: string = process.env.VUE_APP_BACKEND_SERVER;
-      const URLs = URL.split("https://");
-
-      console.log("Connecting websocket");
-
-      // Probably write a test for this.
-      if (URLs.length != 2) {
-        router.push("/login");
-        return;
-      }
-
-      socket = new WebSocket(
-        "wss://" + URLs[1] + "/ws?token=" + store.state.token
-      );
+      socket = new WebSocket("wss://" + document.location.host + "/ws");
 
       socket.onmessage = (event: MessageEvent) => {
         const jsonContent = JSON.parse(event.data);
@@ -1265,6 +1252,8 @@ export default Vue.extend({
               jsonContent.joinRequests
             );
             this.usersOnline = jsonContent.associates;
+            this.userID = jsonContent.userID;
+            this.names = jsonContent.names;
             break;
 
           case WSMessageType.RequestMessages:

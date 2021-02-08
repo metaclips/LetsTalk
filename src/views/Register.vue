@@ -8,29 +8,30 @@
       justify-content: center;
     "
   >
-    <v-form v-model="dataIsValid">
-      <v-row class="fill-height" justify="center" align="center">
-        <v-col cols="12">
-          <v-img
-            src="../assets/unilag.svg"
-            contain
-            height="300"
-            width="300"
-          ></v-img>
-        </v-col>
+    <v-row class="fill-height" justify="center" align="center">
+      <v-col cols="12">
+        <v-img
+          src="../assets/unilag.svg"
+          contain
+          height="300"
+          width="300"
+        ></v-img>
+      </v-col>
 
-        <v-col class="text-center" cols="12">
-          <span class="text-center mx-auto"
-            >Welcome to the University of Lagos chatting platform</span
-          >
-        </v-col>
+      <v-col class="text-center" cols="12">
+        <span class="text-center mx-auto"
+          >Welcome to the University of Lagos chatting platform</span
+        >
+      </v-col>
 
-        <v-col cols="12" sm="6">
+      <v-col cols="12" sm="6">
+        <v-form action="/register" method="POST" v-model="dataIsValid">
           <v-text-field
             v-model="email"
             outlined
             filled
             type="email"
+            name="email"
             required
             placeholder="Email Address"
             :rules="emailRules"
@@ -40,6 +41,7 @@
           <v-text-field
             type="password"
             v-model="password"
+            name="password"
             outlined
             filled
             required
@@ -52,6 +54,7 @@
             v-model="name"
             outlined
             filled
+            name="name"
             type="text"
             required
             :rules="fillInputRules"
@@ -77,6 +80,7 @@
                 persistent-hint
                 readonly
                 v-bind="attrs"
+                name="DOB"
                 v-on="on"
               ></v-text-field>
             </template>
@@ -87,29 +91,15 @@
             ></v-date-picker>
           </v-menu>
 
-          <v-alert v-if="registrationErrorDetails" dense text type="error">{{
-            registrationErrorDetails
-          }}</v-alert>
-        </v-col>
-
-        <v-col cols="12">
-          <v-btn
-            class="mr-4"
-            dark
-            @click="$router.push('/login')"
-            color="green"
-            tile
+          <v-btn class="mr-4" dark href="/login" color="green" tile
             >Log In</v-btn
           >
-          <v-btn
-            @click="registerUser()"
-            :disabled="detailsDisabled || !dataIsValid"
-            tile
+          <v-btn type="submit" :disabled="detailsDisabled || !dataIsValid" tile
             >Register</v-btn
           >
-        </v-col>
-      </v-row>
-    </v-form>
+        </v-form>
+      </v-col>
+    </v-row>
   </div>
 </template>
 
@@ -122,8 +112,6 @@ export default Vue.extend({
     detailsDisabled: false,
     dataIsValid: false,
     datePickerMenu: false,
-
-    registrationErrorDetails: "",
     email: "",
     password: "",
     name: "",

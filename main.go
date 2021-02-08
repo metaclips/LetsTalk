@@ -25,8 +25,10 @@ func main() {
 
 	router := httprouter.New()
 
+	router.GET("/", controller.HomePageGet)
 	router.GET("/ws", controller.ServeWs)
-	router.GET("/login", controller.HomePageLoginGet)
+	router.GET("/login", controller.LoginPageGet)
+	router.GET("/register", controller.RegisterPageGet)
 
 	router.POST("/login", controller.HomePageLoginPost)
 	router.POST("/register", controller.RegisterUserPost)
@@ -36,7 +38,7 @@ func main() {
 		port = os.Getenv("PORT")
 	}
 	if port == "" {
-		port = "8081"
+		port = "8080"
 	}
 
 	router.ServeFiles("/img/*filepath", http.Dir("./dist/img"))

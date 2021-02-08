@@ -396,7 +396,6 @@
 import Vue from "vue";
 import vuetify from "@/plugins/vuetify";
 import { Prop } from "vue/types/options";
-import store from "@/store";
 import CryptoJS from "crypto-js";
 
 import {
@@ -428,6 +427,8 @@ export default Vue.extend({
     changeDownloadStatus: Function,
     startCallSession: Function,
     joinCallSession: Function,
+    userID: String,
+    names: String,
   },
 
   data: () => ({
@@ -447,8 +448,6 @@ export default Vue.extend({
     file: {} as File,
 
     messageType: MessageType,
-    userID: store.state.email,
-    userName: store.state.name,
 
     rules: [
       (value: File) => !!value || "File cannot be empty",
@@ -641,7 +640,7 @@ export default Vue.extend({
         userID: this.userID,
         roomID: this.currentViewedRoom.roomID,
         roomName: this.currentViewedRoom.roomName,
-        requestingUserName: this.userName,
+        requestingUserName: this.names,
         requestingUserID: this.userID,
         users: this.selectedUsersToAddToRoom,
       };

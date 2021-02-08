@@ -1,6 +1,10 @@
 package values
 
-import "errors"
+import (
+	"errors"
+
+	"go.mongodb.org/mongo-driver/mongo"
+)
 
 var (
 	ErrIncorrectUUID              = errors.New("incorrect UUID")
@@ -26,3 +30,15 @@ var (
 	ErrRetrieveUser               = errors.New("user does not exist")
 	ErrSetCookie                  = errors.New("error setting cookies")
 )
+
+func IsMongoDuplicateError(err error) bool {
+	var e mongo.WriteException
+	if errors.As(err, &e) {
+		for _, we := range e.WriteErrors {
+			if we.Code == 11000 {
+				return true
+			}
+		}
+	}
+	return false
+}

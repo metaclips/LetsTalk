@@ -8,7 +8,7 @@
       justify-content: center;
     "
   >
-    <v-row class="fill-height" justify="center" align="center">
+    <v-row justify="center" align="center">
       <v-col cols="12">
         <v-img
           src="../assets/unilag.svg"
@@ -23,7 +23,7 @@
         <span v-else>Welcome to the University of Lagos chatting platform</span>
       </v-col>
 
-      <v-col cols="12" md="5">
+      <v-col cols="12" sm="8">
         <v-form action="/login" method="POST" v-model="detailsValid">
           <v-text-field
             v-model="email"
@@ -48,10 +48,6 @@
             placeholder="Password"
             :disabled="detailsDisabled"
           ></v-text-field>
-
-          <v-alert v-if="signinErrorDetails" dense text type="error">{{
-            signinErrorDetails
-          }}</v-alert>
 
           <v-btn href="/register" color="green" class="mr-4" tile dark
             >Register</v-btn
@@ -81,7 +77,6 @@ export default Vue.extend({
     detailsValid: false,
     detailsDisabled: false,
 
-    signinErrorDetails: "",
     password: "",
     email: "",
 

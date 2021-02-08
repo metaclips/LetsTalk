@@ -91,7 +91,7 @@ export interface FileUploadDownloadDetails {
     nextChunk: number;
 
     fileContent?: any;
-    fileChunk?: string,
+    fileChunk?: string;
 }
 
 export interface FileUploadComplete {

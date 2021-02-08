@@ -168,8 +168,8 @@ export default Vue.extend({
     },
 
     logOff: function () {
-      this.$store.commit("setToken", "");
-      this.$router.push("/login");
+      // this.$store.commit("setToken", "");
+      // this.$router.push("/login");
     },
   },
 });

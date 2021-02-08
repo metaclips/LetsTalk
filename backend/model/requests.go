@@ -457,7 +457,7 @@ func handleSearchUser(searchText, user string) {
 func handleLoadUserContent(email string) {
 	userInfo := User{Email: email}
 	if err := userInfo.getUser(); err != nil {
-		log.Errorln("Could not fetch users room", email)
+		log.Errorln("Could not fetch users room", email, err)
 		return
 	}
 
@@ -482,6 +482,8 @@ func handleLoadUserContent(email string) {
 		"joinedRooms":  userInfo.RoomsJoined,
 		"joinRequests": userInfo.JoinRequest,
 		"associates":   isUserOnline,
+		"userID":       email,
+		"names":        userInfo.Name,
 	}
 
 	if data, err := json.Marshal(request); err == nil {

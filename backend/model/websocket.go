@@ -47,7 +47,6 @@ func (h *hub) RegisterWS(ws *websocket.Conn, email string) {
 	log.Infoln("user", email, "Connected")
 	go s.readPump(email)
 	go s.writePump()
-
 }
 
 func (h *hub) Run() {
@@ -201,11 +200,6 @@ func (s subscription) readPump(user string) {
 		err = json.Unmarshal(msg, &data)
 		if err != nil {
 			log.Println("could not unmarshal json")
-		}
-
-		if data.User != user {
-			log.Warningf("an invalidated user tried to make websocket request for %s, invalidated user: %s, user: %s", data.MsgType, data.User, user)
-			continue
 		}
 
 		switch data.MsgType {
