@@ -70,7 +70,6 @@ func RegisterPageGet(w http.ResponseWriter, r *http.Request, _ httprouter.Params
 	if err := templ.ExecuteTemplate(w, "register.html", nil); err != nil {
 		log.Errorln("error loading registration template", err)
 	}
-	return
 }
 
 func RegisterUserPost(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {

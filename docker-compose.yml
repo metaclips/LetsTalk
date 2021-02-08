@@ -4,18 +4,10 @@ services:
   api:
     build: 
         context: .
-        dockerfile: api.Dockerfile
+        dockerfile: Dockerfile
     container_name: LetsTalkAPI
     volumes:
         - api:/usr/src/app/
-
-  ui:
-    build: 
-        context: .
-        dockerfile: ui.Dockerfile
-    container_name: LetsTalkUI
-    volumes:
-        - ui:/usr/src/ui/
 
 volumes:
     api:
