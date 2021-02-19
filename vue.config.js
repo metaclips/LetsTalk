@@ -16,6 +16,16 @@ module.exports = {
         "home"
       ]
     },
+    "admin": {
+      "entry": "./src/Admin/main.ts",
+      "template": "public/index.html",
+      "title": "Admin",
+      "chunks": [
+        "chunk-vendors",
+        "chunk-common",
+        "admin"
+      ]
+    },
     "login": {
       "entry": "./src/Login/main.ts",
       "template": "public/index.html",
