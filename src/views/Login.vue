@@ -49,9 +49,6 @@
             :disabled="detailsDisabled"
           ></v-text-field>
 
-          <v-btn href="/register" color="green" class="mr-4" tile dark
-            >Register</v-btn
-          >
           <v-btn type="submit" :disabled="detailsDisabled || !detailsValid" tile
             >Log in</v-btn
           >

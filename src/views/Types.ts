@@ -23,6 +23,14 @@ export interface JoinedRoom extends RoomDetails {
     name: string;
 }
 
+export interface UsersDetails {
+    names: string;
+    email: string;
+    department: string;
+    entryYear: number;
+    dob: string;
+}
+
 export interface JoinRequest extends RoomDetails {
     requestingUserName: string;
     requestingUserID: string;
@@ -32,6 +40,8 @@ export interface FetchedUsers {
     name: string;
     userID: string;
 }
+
+
 
 export interface SentRoomRequest extends RoomDetails {
     requesterID: string;

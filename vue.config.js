@@ -36,15 +36,5 @@ module.exports = {
         "login"
       ]
     },
-    "register": {
-      "entry": "./src/Register/main.ts",
-      "template": "public/index.html",
-      "title": "Register",
-      "chunks": [
-        "chunk-vendors",
-        "chunk-common",
-        "register"
-      ]
-    }
   }
 }
