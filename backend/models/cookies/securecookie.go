@@ -35,8 +35,6 @@ func NewSecureCookie(userDB, adminDB database.Database) Cookies {
 	}
 }
 
-// GenerateCookie generates a token and sends to frontend.
-// Generated tokens are to be stored by frontend and verified for every request.
 func (b *secureCookie) GenerateCookie(w http.ResponseWriter, email, cookieName, path string) error {
 	cookie := cookieData{}
 	exitTime := time.Now().Add(maxTime)

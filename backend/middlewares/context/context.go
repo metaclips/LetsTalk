@@ -16,6 +16,7 @@ func CancelContext() error {
 	return nil
 }
 
+// Creates a child context from main context.
 func CreateChildCancelContext() (context.Context, context.CancelFunc) {
 	return context.WithCancel(ctx)
 }
