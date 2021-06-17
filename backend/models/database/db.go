@@ -29,10 +29,6 @@ type Database interface {
 	CompleteDeleteByID(ctx context.Context, id interface{}) error
 	// Completely delete content with specified field.
 	CompleteDeleteOne(ctx context.Context, fields map[string]interface{}) error
-	// Delete one content in DB with specified field.
-	DeleteOne(ctx context.Context, fields map[string]interface{}) error
-	// Delete many content with fields.
-	DeleteMany(ctx context.Context, fields map[string]interface{}) error
 	// Find number of contents of fields in DB.
 	Count(ctx context.Context, fields map[string]interface{}) (int64, error)
 }
