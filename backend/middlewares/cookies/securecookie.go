@@ -9,7 +9,7 @@ import (
 	api_constants "github.com/metaclips/LetsTalk/backend/helpers/constants"
 	api_errors "github.com/metaclips/LetsTalk/backend/helpers/errors"
 	"github.com/metaclips/LetsTalk/backend/middlewares/context"
-	"github.com/metaclips/LetsTalk/backend/models/database"
+	"github.com/metaclips/LetsTalk/backend/middlewares/database"
 	"go.mongodb.org/mongo-driver/bson"
 )
 
