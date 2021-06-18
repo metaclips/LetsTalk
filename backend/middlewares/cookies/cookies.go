@@ -1,15 +1,16 @@
 package cookies
 
 import (
+	"context"
 	"net/http"
 )
 
 // Cookie interface for cookie generation.
 type Cookies interface {
 	// Generates cookie provided the responsewriter.
-	GenerateCookie(w http.ResponseWriter, email, cookieName, path string) error
+	GenerateCookie(ctx context.Context, w http.ResponseWriter, email, cookieName, path string) error
 	// Validates cookie provided the request handle.
-	CheckCookie(r *http.Request, cookieName string) error
+	CheckCookie(ctx context.Context, r *http.Request, cookieName string) (string, error)
 	// Extend cookie validity.
-	ExtendCookie(email string) error
+	ExtendCookie(ctx context.Context, email string) error
 }

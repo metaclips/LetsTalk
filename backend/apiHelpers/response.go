@@ -13,12 +13,12 @@ type response struct {
 }
 
 // Respond returns basic response structure
-func Respond(w http.ResponseWriter, data interface{}, statusCode int, err error) error {
+func Respond(w http.ResponseWriter, statusCode int, data interface{}, err string) error {
 	w.Header().Add("Content-Type", "application/json")
 
 	return json.NewEncoder(w).Encode(response{
 		Data:       data,
-		Error:      err.Error(),
+		Error:      err,
 		StatusCode: statusCode,
 	})
 }
