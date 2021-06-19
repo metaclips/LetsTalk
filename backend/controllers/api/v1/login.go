@@ -9,6 +9,7 @@ import (
 	apihelpers "github.com/metaclips/LetsTalk/backend/apiHelpers"
 	"github.com/metaclips/LetsTalk/backend/helpers/constants"
 	api_errors "github.com/metaclips/LetsTalk/backend/helpers/errors"
+	"github.com/metaclips/LetsTalk/backend/helpers/validation"
 	app_context "github.com/metaclips/LetsTalk/backend/middlewares/context"
 	"github.com/metaclips/LetsTalk/backend/middlewares/cookies"
 	"github.com/metaclips/LetsTalk/backend/models"
@@ -37,6 +38,11 @@ func (l LoginController) Login(w http.ResponseWriter, req *http.Request, _ httpr
 	if err := decoder.Decode(&login); err != nil {
 		log.Errorln("error decoding login data: ", err)
 		apihelpers.Respond(w, http.StatusInternalServerError, "", api_errors.ErrGeneric.Error())
+		return
+	}
+
+	if err := validation.ValidateInputs(login); err != nil {
+		apihelpers.Respond(w, http.StatusBadRequest, "", err.Error())
 		return
 	}
 

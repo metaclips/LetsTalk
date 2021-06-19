@@ -4,10 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"time"
 
 	apihelpers "github.com/metaclips/LetsTalk/backend/apiHelpers"
 	"github.com/metaclips/LetsTalk/backend/helpers/constants"
 	api_errors "github.com/metaclips/LetsTalk/backend/helpers/errors"
+	"github.com/metaclips/LetsTalk/backend/helpers/validation"
 	app_context "github.com/metaclips/LetsTalk/backend/middlewares/context"
 	"github.com/metaclips/LetsTalk/backend/models"
 	v1resources "github.com/metaclips/LetsTalk/backend/resources/api/v1"
@@ -40,7 +42,10 @@ func (r RegistrationController) RegisterUser(w http.ResponseWriter, req *http.Re
 		return
 	}
 
-	// ToDo: We should have validation.
+	if err := validation.ValidateInputs(registration); err != nil {
+		apihelpers.Respond(w, http.StatusBadRequest, "", err.Error())
+		return
+	}
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(registration.Password), constants.BcryptCost)
 	if err != nil {
@@ -55,8 +60,8 @@ func (r RegistrationController) RegisterUser(w http.ResponseWriter, req *http.Re
 		FirstName: registration.FirstName,
 		LastName:  registration.LastName,
 		DOB:       registration.DOB,
-		Class:     registration.Class,
 		Password:  hashedPassword,
+		CreatedAt: time.Now(),
 	}
 
 	if err := r.user.CreateUser(r.ctx, &userData); err != nil {

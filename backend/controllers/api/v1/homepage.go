@@ -15,10 +15,10 @@ import (
 )
 
 type HomepageController struct {
-	user       models.User
-	ctx        context.Context
-	cancelFunc context.CancelFunc
-	cookie     cookies.Cookies
+	_      models.User
+	ctx    context.Context
+	_      context.CancelFunc
+	cookie cookies.Cookies
 }
 
 func NewHomepageController(user models.User, cookies cookies.Cookies) *LoginController {
