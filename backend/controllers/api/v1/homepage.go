@@ -1,51 +1,39 @@
-package controller
+package v1controller
 
 import (
-	"html/template"
+	"context"
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
+	apihelpers "github.com/metaclips/LetsTalk/backend/apiHelpers"
+	"github.com/metaclips/LetsTalk/backend/helpers/constants"
+	api_errors "github.com/metaclips/LetsTalk/backend/helpers/errors"
+	app_context "github.com/metaclips/LetsTalk/backend/middlewares/context"
+	"github.com/metaclips/LetsTalk/backend/middlewares/cookies"
+	"github.com/metaclips/LetsTalk/backend/models"
+	log "github.com/sirupsen/logrus"
 )
 
-var templ *template.Template
-
-func HomePageLoginPost(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	// if err := r.ParseForm(); err != nil {
-	// 	log.Errorln("error parsing form in homepage login post request, err: ", err)
-	// 	return
-	// }
-
-	// email := strings.ToLower(r.FormValue("email"))
-	// password := r.FormValue("password")
-
-	// err := model.User{
-	// 	Email: email,
-	// }.CreateUserLogin(password, w)
-
-	// if err != nil {
-	// 	if err := templ.ExecuteTemplate(w, "login.html", nil); err != nil {
-	// 		log.Errorln("error loading login template", err)
-	// 	}
-
-	// 	return
-	// }
-
-	// http.Redirect(w, r, "/", http.StatusMovedPermanently)
+type HomepageController struct {
+	_      models.User
+	ctx    context.Context
+	_      context.CancelFunc
+	cookie cookies.Cookies
 }
 
-func HomePageGet(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	// cookie := model.CookieDetail{CookieName: values.UserCookieName, Collection: values.UsersCollectionName}
+func NewHomepageController(user models.User, cookies cookies.Cookies) *LoginController {
+	ctx, cancelFunc := app_context.CreateChildCancelContext()
+	return &LoginController{
+		user, ctx, cancelFunc, cookies,
+	}
+}
 
-	// err := cookie.CheckCookie(r, values.UserCookieName)
-	// if err != nil {
-	// 	if err := templ.ExecuteTemplate(w, "login.html", nil); err != nil {
-	// 		log.Errorln("error loading login template", err)
-	// 	}
-	// 	return
-	// }
+func (h HomepageController) HomePage(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	_, err := h.cookie.CheckCookie(h.ctx, r, constants.UserCookieName)
+	if err != nil {
+		log.Errorln("error checking users cookies: ", err)
+		apihelpers.Respond(w, http.StatusBadRequest, "", api_errors.ErrValidatingCredentials.Error())
+		return
+	}
 
-	// if err := templ.ExecuteTemplate(w, "home.html", nil); err != nil {
-	// 	log.Errorln("error loading home template", err)
-	// 	return
-	// }
 }
