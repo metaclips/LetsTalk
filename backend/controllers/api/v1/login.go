@@ -37,12 +37,12 @@ func (l LoginController) Login(w http.ResponseWriter, req *http.Request, _ httpr
 	decoder := json.NewDecoder(req.Body)
 	if err := decoder.Decode(&login); err != nil {
 		log.Errorln("error decoding login data: ", err)
-		apihelpers.Respond(w, http.StatusInternalServerError, "", api_errors.ErrGeneric.Error())
+		apihelpers.Respond(w, http.StatusInternalServerError, nil, "", api_errors.ErrGeneric.Error())
 		return
 	}
 
 	if err := validation.ValidateInputs(login); err != nil {
-		apihelpers.Respond(w, http.StatusBadRequest, "", err.Error())
+		apihelpers.Respond(w, http.StatusBadRequest, nil, "", err.Error())
 		return
 	}
 
@@ -50,19 +50,21 @@ func (l LoginController) Login(w http.ResponseWriter, req *http.Request, _ httpr
 	if err != nil {
 		status, err := api_errors.ErrorResponse(err)
 		log.Errorln("error decoding login data: ", err)
-		apihelpers.Respond(w, status, "", err)
+		apihelpers.Respond(w, status, nil, "", err)
 		return
 	}
 
 	if err := bcrypt.CompareHashAndPassword(userData.Password, []byte(login.Password)); err != nil {
 		log.Errorln("error decoding login data: ", err)
-		apihelpers.Respond(w, http.StatusBadRequest, "", api_errors.ErrInvalidCredentials.Error())
+		apihelpers.Respond(w, http.StatusBadRequest, nil, "", api_errors.ErrInvalidCredentials.Error())
 		return
 	}
 
 	if err := l.cookie.GenerateCookie(l.ctx, w, login.Email, constants.UserCookieName, "/"); err != nil {
 		log.Errorln("error generating cookies for user: ", err)
-		apihelpers.Respond(w, http.StatusInternalServerError, "", api_errors.ErrGeneric.Error())
+		apihelpers.Respond(w, http.StatusInternalServerError, nil, "", api_errors.ErrGeneric.Error())
 		return
 	}
+
+	apihelpers.Respond(w, http.StatusOK, nil, "successful login", "")
 }

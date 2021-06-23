@@ -23,6 +23,12 @@ type UserLogin struct {
 	Password string `bson:"-" json:"password" validate:"required"`
 }
 
+type UserStatus struct {
+	Name     string `json:"name"`
+	Email    string `json:"email"`
+	IsOnline bool   `json:"isOnline"`
+}
+
 type UserData struct {
 	ID         primitive.ObjectID `bson:"_id" json:"-"`
 	Email      string             `bson:"email" json:"email"`

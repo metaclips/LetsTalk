@@ -38,19 +38,19 @@ func (r RegistrationController) RegisterUser(w http.ResponseWriter, req *http.Re
 	decoder := json.NewDecoder(req.Body)
 	if err := decoder.Decode(&registration); err != nil {
 		log.Errorln("error decoding registration data: ", err)
-		apihelpers.Respond(w, http.StatusInternalServerError, "", api_errors.ErrGeneric.Error())
+		apihelpers.Respond(w, http.StatusInternalServerError, nil, "", api_errors.ErrGeneric.Error())
 		return
 	}
 
 	if err := validation.ValidateInputs(registration); err != nil {
-		apihelpers.Respond(w, http.StatusBadRequest, "", err.Error())
+		apihelpers.Respond(w, http.StatusBadRequest, nil, "", err.Error())
 		return
 	}
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(registration.Password), constants.BcryptCost)
 	if err != nil {
 		log.Errorln("error hashing users password:", err)
-		apihelpers.Respond(w, http.StatusInternalServerError, "", api_errors.ErrGeneric.Error())
+		apihelpers.Respond(w, http.StatusInternalServerError, nil, "", api_errors.ErrGeneric.Error())
 		return
 	}
 
@@ -66,7 +66,9 @@ func (r RegistrationController) RegisterUser(w http.ResponseWriter, req *http.Re
 
 	if err := r.user.CreateUser(r.ctx, &userData); err != nil {
 		log.Errorln("error creating users:", err)
-		apihelpers.Respond(w, http.StatusInternalServerError, "", api_errors.ErrGeneric.Error())
+		apihelpers.Respond(w, http.StatusInternalServerError, nil, "", api_errors.ErrGeneric.Error())
 		return
 	}
+
+	apihelpers.Respond(w, http.StatusCreated, nil, "user successfully registered", "")
 }
