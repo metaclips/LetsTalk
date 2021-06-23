@@ -11,6 +11,7 @@ import (
 	api_errors "github.com/metaclips/LetsTalk/backend/helpers/errors"
 	"github.com/metaclips/LetsTalk/backend/middlewares/database"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type secureCookie struct {
@@ -19,6 +20,7 @@ type secureCookie struct {
 }
 
 type cookieData struct {
+	ID      primitive.ObjectID
 	Email   string
 	UUID    string
 	Expires time.Time
@@ -61,46 +63,46 @@ func (b *secureCookie) GenerateCookie(ctx context.Context, w http.ResponseWriter
 	return nil
 }
 
-func (b *secureCookie) CheckCookie(ctx context.Context, r *http.Request, cookieName string) (string, error) {
+func (b *secureCookie) CheckCookie(ctx context.Context, r *http.Request, cookieName string) (*primitive.ObjectID, error) {
 	cookie, err := r.Cookie(cookieName)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	if cookie.Value == "" {
-		return "", api_errors.ErrTokenNotSpecified
+		return nil, api_errors.ErrTokenNotSpecified
 	}
 
 	data := cookieData{}
 
 	if err := b.handler.Decode(cookieName, cookie.Value, &data); err != nil {
-		return "", api_errors.ErrInvalidToken
+		return nil, api_errors.ErrInvalidToken
 	}
 
 	// Ensure hasn't expired.
 	if cookie.Expires.Before(time.Now().Local()) {
-		return "", api_errors.ErrCookieExpired
+		return nil, api_errors.ErrCookieExpired
 	}
 
 	// Validate
 	dbCookieData := cookieData{}
 	if err := b.db.FindByID(ctx, data.Email, nil, &dbCookieData); err != nil {
-		return "", err
+		return nil, err
 	}
 
 	// Ensure UUID in DB is same with that of user
 	// else there's a login from two different browsers
 	// which should not be allowed.
 	if dbCookieData.UUID != data.UUID {
-		return "", api_errors.ErrIncorrectUUID
+		return nil, api_errors.ErrIncorrectUUID
 	}
 
 	// They must be of same tume.
 	if dbCookieData.Expires.Sub(dbCookieData.Expires).Seconds() > 0 {
-		return "", api_errors.ErrInvalidExpiryTime
+		return nil, api_errors.ErrInvalidExpiryTime
 	}
 
-	return dbCookieData.Email, b.ExtendCookie(ctx, data.Email)
+	return &dbCookieData.ID, b.ExtendCookie(ctx, data.Email)
 }
 
 func (b *secureCookie) ExtendCookie(ctx context.Context, email string) error {

@@ -5,9 +5,11 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/metaclips/LetsTalk/backend/helpers/constants"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/x/bsonx"
 )
 
 type mongoDB struct {
@@ -16,6 +18,15 @@ type mongoDB struct {
 }
 
 func NewMonStore(db *mongo.Database, collection string) Database {
+
+	ctx := context.TODO()
+
+	_, _ = db.Collection(constants.RoomRequestCollection).Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys:    bsonx.Doc{bsonx.Elem{Key: "userID", Value: bsonx.Int32(1)}, bsonx.Elem{Key: "roomID", Value: bsonx.Int32(1)}},
+		Options: options.Index().SetUnique(true),
+	},
+	)
+
 	return &mongoDB{
 		db,
 		db.Collection(collection),
