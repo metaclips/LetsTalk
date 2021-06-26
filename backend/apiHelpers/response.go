@@ -6,7 +6,7 @@ import (
 )
 
 // ResponseData structure
-type response struct {
+type Response struct {
 	Data       interface{} `json:"data"`
 	Msg        string      `json:"msg"`
 	Error      string      `json:"error"`
@@ -17,7 +17,7 @@ type response struct {
 func Respond(w http.ResponseWriter, statusCode int, data interface{}, msg, err string) error {
 	w.Header().Add("Content-Type", "application/json")
 
-	return json.NewEncoder(w).Encode(response{
+	return json.NewEncoder(w).Encode(Response{
 		Data:       data,
 		Error:      err,
 		Msg:        msg,

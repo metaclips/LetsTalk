@@ -17,20 +17,20 @@ type mongoDB struct {
 	collection *mongo.Collection
 }
 
-func NewMonStore(db *mongo.Database, collection string) Database {
-
-	ctx := context.TODO()
-
-	_, _ = db.Collection(constants.RoomRequestCollection).Indexes().CreateOne(ctx, mongo.IndexModel{
-		Keys:    bsonx.Doc{bsonx.Elem{Key: "userID", Value: bsonx.Int32(1)}, bsonx.Elem{Key: "roomID", Value: bsonx.Int32(1)}},
-		Options: options.Index().SetUnique(true),
-	},
-	)
+func NewMongoStore(db *mongo.Database, collection string) Database {
 
 	return &mongoDB{
 		db,
 		db.Collection(collection),
 	}
+}
+
+func InitDatabaseIndexing(ctx context.Context, db *mongo.Database) {
+	_, _ = db.Collection(constants.RoomRequestCollection).Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys:    bsonx.Doc{bsonx.Elem{Key: "userID", Value: bsonx.Int32(1)}, bsonx.Elem{Key: "roomID", Value: bsonx.Int32(1)}},
+		Options: options.Index().SetUnique(true),
+	},
+	)
 }
 
 func (d *mongoDB) Save(ctx context.Context, payload interface{}, out interface{}) error {

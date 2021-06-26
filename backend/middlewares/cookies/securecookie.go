@@ -28,7 +28,7 @@ type cookieData struct {
 
 const maxTime = time.Hour * 2
 
-func NewSecureCookie(userDB, adminDB database.Database) Cookies {
+func NewSecureCookie(userDB database.Database) Cookies {
 	return &secureCookie{
 		securecookie.New(securecookie.GenerateRandomKey(64), securecookie.GenerateRandomKey(32)),
 		userDB,
