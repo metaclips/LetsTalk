@@ -1,4 +1,4 @@
-package apihelpers
+package apihelper
 
 import (
 	"encoding/json"

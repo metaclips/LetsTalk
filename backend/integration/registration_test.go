@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	apihelpers "github.com/metaclips/LetsTalk/backend/apihelpers"
+	apihelpers "github.com/metaclips/LetsTalk/backend/apihelper"
 	"github.com/metaclips/LetsTalk/backend/helpers/constants"
 	v1resources "github.com/metaclips/LetsTalk/backend/resources/api/v1"
 	"github.com/stretchr/testify/assert"

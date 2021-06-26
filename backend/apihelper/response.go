@@ -1,4 +1,4 @@
-package apihelpers
+package apihelper
 
 import (
 	"encoding/json"
@@ -14,13 +14,16 @@ type Response struct {
 }
 
 // Respond returns basic response structure
-func Respond(w http.ResponseWriter, statusCode int, data interface{}, msg, err string) error {
+func Respond(w http.ResponseWriter, statusCode int, data interface{}, msg, errVal string) error {
+	w.WriteHeader(statusCode)
 	w.Header().Add("Content-Type", "application/json")
 
-	return json.NewEncoder(w).Encode(Response{
+	resp := Response{
 		Data:       data,
-		Error:      err,
+		Error:      errVal,
 		Msg:        msg,
 		StatusCode: statusCode,
-	})
+	}
+
+	return json.NewEncoder(w).Encode(resp)
 }

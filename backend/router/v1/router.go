@@ -6,7 +6,7 @@ import (
 	"os/signal"
 
 	"github.com/julienschmidt/httprouter"
-	apihelper "github.com/metaclips/LetsTalk/backend/apihelpers"
+	apihelper "github.com/metaclips/LetsTalk/backend/apihelper"
 	v1controller "github.com/metaclips/LetsTalk/backend/controllers/api/v1"
 	"github.com/metaclips/LetsTalk/backend/helpers/constants"
 	appcontext "github.com/metaclips/LetsTalk/backend/middlewares/context"

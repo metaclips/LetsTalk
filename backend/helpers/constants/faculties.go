@@ -3,7 +3,7 @@ package constants
 const (
 	ArtsFaculty                     = "ARTS"
 	BasicMedicalSciencesFaculty     = "BASIC MEDICAL SCIENCES"
-	BusinessAdministrationFaculty   = "BUISNESS ADMINISTRATION"
+	BusinessAdministrationFaculty   = "BUSINESS ADMINISTRATION"
 	ClinicalSciencesFaculty         = "CLINICAL SCIENCES "
 	DentalSciencesFaculty           = "DENTAL SCIENCES"
 	EducationFaculty                = "EDUCATION"

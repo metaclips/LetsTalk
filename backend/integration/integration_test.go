@@ -12,7 +12,7 @@ import (
 	"os"
 	"testing"
 
-	apihelpers "github.com/metaclips/LetsTalk/backend/apihelpers"
+	apihelpers "github.com/metaclips/LetsTalk/backend/apihelper"
 	v1controller "github.com/metaclips/LetsTalk/backend/controllers/api/v1"
 	"github.com/metaclips/LetsTalk/backend/helpers/constants"
 	appcontext "github.com/metaclips/LetsTalk/backend/middlewares/context"
@@ -48,7 +48,7 @@ func TestMain(m *testing.M) {
 }
 
 func integration() {
-	err := apihelpers.LoadConfiguration("../../config.json")
+	err := apihelpers.LoadConfiguration("../../config_test.json")
 	panicOnError(err)
 
 	ctx, cancel := appcontext.CreateChildCancelContext()

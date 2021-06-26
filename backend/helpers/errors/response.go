@@ -35,5 +35,10 @@ func ErrorResponse(err error) (int, string) {
 		errVal = ErrRecordExists.Error()
 	}
 
+	if err == mongo.ErrNoDocuments {
+		status = http.StatusBadRequest
+		errVal = "record does not exit"
+	}
+
 	return status, errVal
 }
