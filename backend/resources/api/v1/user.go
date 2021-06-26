@@ -19,7 +19,7 @@ type UserRegistration struct {
 }
 
 type UserLogin struct {
-	Email    string `bson:"_id" json:"userID" validate:"required,email"`
+	Email    string `bson:"_id" json:"email" validate:"required,email"`
 	Password string `bson:"-" json:"password" validate:"required"`
 }
 

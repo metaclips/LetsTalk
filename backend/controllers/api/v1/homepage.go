@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
-	apihelpers "github.com/metaclips/LetsTalk/backend/apiHelpers"
+	apihelpers "github.com/metaclips/LetsTalk/backend/apihelper"
 	"github.com/metaclips/LetsTalk/backend/helpers/constants"
 	api_errors "github.com/metaclips/LetsTalk/backend/helpers/errors"
 	app_context "github.com/metaclips/LetsTalk/backend/middlewares/context"

@@ -1,20 +1,9 @@
 package main
 
-// import (
-// 	"encoding/gob"
-// 	"net/http"
-// 	"os"
-// 	"time"
-
-// 	log "github.com/sirupsen/logrus"
-
-// 	"github.com/julienschmidt/httprouter"
-// 	"github.com/metaclips/LetsTalk/backend/controller"
-// 	"github.com/metaclips/LetsTalk/backend/model"
-// 	"github.com/metaclips/LetsTalk/backend/values"
-// )
+import v1router "github.com/metaclips/LetsTalk/backend/router/v1"
 
 func main() {
+	v1router.StartV1()
 	// if err := values.LoadConfiguration("./config.json"); err != nil {
 	// 	log.Fatalln("unable to load config", err)
 	// }

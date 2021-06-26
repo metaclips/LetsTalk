@@ -33,21 +33,25 @@ jobs:
   golang:
     strategy:
       matrix:
-        go-version: [1.15]
+        go-version: [1.16]
     runs-on: ubuntu-latest
     steps:
+    - name: Configure git for private modules
+      env:
+        TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+      run: git config --global url."https://metaclips:${TOKEN}@github.com".insteadOf "https://github.com"
     - name: Checkout code
       uses: actions/checkout@v2
     - name: Install Go
       uses: actions/setup-go@v1
       with:
         go-version: ${{ matrix.go-version }}
-    - name: Start tests
-      env: 
-        db_host: ${{ secrets.db_host }}
-      run: go test -race ./...
+    # - name: Start tests
+    #   env: 
+    #     db_host: ${{ secrets.db_host }}
+    #   run: go test ./...
     - name: Install linter
-      run: "curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(go env GOPATH)/bin v1.23.8"    
+      run: "curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(go env GOPATH)/bin v1.41.1"    
     - name: Install dependencies
       if: steps.cache.outputs.cache-hit != 'true'
       run: go mod download       

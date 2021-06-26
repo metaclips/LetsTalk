@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
-	apihelpers "github.com/metaclips/LetsTalk/backend/apiHelpers"
+	apihelpers "github.com/metaclips/LetsTalk/backend/apihelper"
 	"github.com/metaclips/LetsTalk/backend/helpers/constants"
 	api_errors "github.com/metaclips/LetsTalk/backend/helpers/errors"
 	"github.com/metaclips/LetsTalk/backend/helpers/validation"
@@ -67,4 +67,6 @@ func (l LoginController) Login(w http.ResponseWriter, req *http.Request, _ httpr
 	}
 
 	apihelpers.Respond(w, http.StatusOK, nil, "successful login", "")
+
+	http.Redirect(w, req, "/", http.StatusMovedPermanently)
 }
