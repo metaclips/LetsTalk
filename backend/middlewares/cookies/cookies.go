@@ -10,7 +10,7 @@ import (
 // Cookie interface for cookie generation.
 type Cookies interface {
 	// Generates cookie provided the responsewriter.
-	GenerateCookie(ctx context.Context, w http.ResponseWriter, email, cookieName, path string) error
+	GenerateCookie(ctx context.Context, email, cookieName string) (string, error)
 	// Validates cookie provided the request handle.
 	CheckCookie(ctx context.Context, r *http.Request, cookieName string) (*primitive.ObjectID, error)
 	// Extend cookie validity.

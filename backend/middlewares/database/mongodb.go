@@ -31,6 +31,13 @@ func InitDatabaseIndexing(ctx context.Context, db *mongo.Database) {
 		Options: options.Index().SetUnique(true),
 	},
 	)
+
+	{
+		_, _ = db.Collection(constants.UserCollection).Indexes().CreateOne(ctx, mongo.IndexModel{
+			Keys: bson.M{"email": "text", "firstName": "text", "lastName": "text", "matricNumber": "text", "department": "text", "faculty": "text", "year": "text"},
+		},
+		)
+	}
 }
 
 func (d *mongoDB) Save(ctx context.Context, payload interface{}, out interface{}) error {

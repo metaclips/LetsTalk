@@ -22,9 +22,6 @@ func NewRoom(db database.Database) Room {
 // Create new Room instance. Note should be called right after storing
 // success message.
 func (b Room) CreateNewRoom(ctx context.Context, room *v1resources.Room) error {
-	room.ID = primitive.NewObjectID()
-	room.MessageCount = 1
-
 	if err := b.db.Save(ctx, room, nil); err != nil {
 		return err
 	}

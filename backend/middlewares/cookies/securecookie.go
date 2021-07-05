@@ -3,11 +3,12 @@ package cookies
 import (
 	"context"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/securecookie"
-	api_constants "github.com/metaclips/LetsTalk/backend/helpers/constants"
+	"github.com/metaclips/LetsTalk/backend/helpers/constants"
 	api_errors "github.com/metaclips/LetsTalk/backend/helpers/errors"
 	"github.com/metaclips/LetsTalk/backend/middlewares/database"
 	"go.mongodb.org/mongo-driver/bson"
@@ -35,7 +36,7 @@ func NewSecureCookie(userDB database.Database) Cookies {
 	}
 }
 
-func (b *secureCookie) GenerateCookie(ctx context.Context, w http.ResponseWriter, email, cookieName, path string) error {
+func (b *secureCookie) GenerateCookie(ctx context.Context, email, cookieName string) (string, error) {
 	cookie := cookieData{}
 	exitTime := time.Now().Add(maxTime)
 	cookie.UUID = uuid.New().String()
@@ -44,44 +45,33 @@ func (b *secureCookie) GenerateCookie(ctx context.Context, w http.ResponseWriter
 	// Update user UUID.
 	err := b.db.UpdateByID(ctx, email, bson.M{"$set": bson.M{"uuid": cookie.UUID, "expires": exitTime}})
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	encoded, err := b.handler.Encode(cookieName, cookie)
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	http.SetCookie(w, &http.Cookie{
-		Name:     api_constants.UserCookieName,
-		Value:    encoded,
-		Path:     path,
-		Secure:   true,
-		HttpOnly: true,
-	})
-
-	return nil
+	return encoded, nil
 }
 
 func (b *secureCookie) CheckCookie(ctx context.Context, r *http.Request, cookieName string) (*primitive.ObjectID, error) {
-	cookie, err := r.Cookie(cookieName)
-	if err != nil {
-		return nil, err
+	authorization := r.Header.Get(constants.AuthorizationHeader)
+
+	bearer := "Bearer"
+	if len(authorization) > len(bearer) && strings.ToUpper(authorization[0:len(bearer)]) == bearer {
+		authorization = authorization[len(bearer)+1:]
 	}
 
-	if cookie.Value == "" {
+	if authorization == "" {
 		return nil, api_errors.ErrTokenNotSpecified
 	}
 
 	data := cookieData{}
 
-	if err := b.handler.Decode(cookieName, cookie.Value, &data); err != nil {
+	if err := b.handler.Decode(cookieName, authorization, &data); err != nil {
 		return nil, api_errors.ErrInvalidToken
-	}
-
-	// Ensure hasn't expired.
-	if cookie.Expires.Before(time.Now().Local()) {
-		return nil, api_errors.ErrCookieExpired
 	}
 
 	// Validate

@@ -91,11 +91,6 @@ func TestLogin(t *testing.T) {
 
 		assert.Equal(t, user.err, body.Error, user.name)
 		assert.Equal(t, user.status, body.StatusCode, user.name)
-
-		if user.status == http.StatusOK && assert.Equal(t, 1, len(resp.Cookies()), user.name) {
-			resp, err = testHandler.makeNormalCookieRequest("GET", fmt.Sprintf("%s/v1/home", testHandler.server.URL), nil, resp.Cookies()[0])
-			assert.NoError(t, err, user.name)
-			assert.Equal(t, http.StatusOK, resp.StatusCode, user.name)
-		}
+		assert.NotNil(t, body.Data)
 	}
 }

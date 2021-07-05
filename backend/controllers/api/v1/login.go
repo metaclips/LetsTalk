@@ -60,13 +60,13 @@ func (l LoginController) Login(w http.ResponseWriter, req *http.Request, _ httpr
 		return
 	}
 
-	if err := l.cookie.GenerateCookie(l.ctx, w, login.Email, constants.UserCookieName, "/"); err != nil {
+	cookie, err := l.cookie.GenerateCookie(l.ctx, login.Email, constants.UserCookieName)
+
+	if err != nil {
 		log.Errorln("error generating cookies for user: ", err)
 		apihelpers.Respond(w, http.StatusInternalServerError, nil, "", api_errors.ErrGeneric.Error())
 		return
 	}
 
-	apihelpers.Respond(w, http.StatusOK, nil, "successful login", "")
-
-	http.Redirect(w, req, "/", http.StatusMovedPermanently)
+	apihelpers.Respond(w, http.StatusOK, cookie, "successful login", "")
 }

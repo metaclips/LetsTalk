@@ -3,6 +3,7 @@ package models
 import (
 	"context"
 
+	"github.com/metaclips/LetsTalk/backend/helpers/paging"
 	"github.com/metaclips/LetsTalk/backend/middlewares/database"
 	v1resources "github.com/metaclips/LetsTalk/backend/resources/api/v1"
 	"go.mongodb.org/mongo-driver/bson"
@@ -34,6 +35,20 @@ func (u User) GetUserByID(ctx context.Context, ID primitive.ObjectID) (*v1resour
 	}
 
 	return &user, nil
+}
+
+func (u User) GetUsersPrunedData(ctx context.Context, paging *paging.Paging) (*v1resources.PrunedUserList, error) {
+	users := make([]v1resources.PrunedUser, 0)
+
+	count, err := paging.PagedRequest(ctx, nil, u.db, &users)
+	if err != nil {
+		return nil, err
+	}
+
+	return &v1resources.PrunedUserList{
+		Data:  users,
+		Count: count,
+	}, nil
 }
 
 func (u User) GetUserByEmail(ctx context.Context, email string) (*v1resources.UserData, error) {

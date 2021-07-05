@@ -21,7 +21,7 @@ func NewRoomRequest(db database.Database) RoomRequest {
 
 // Create new room instance. Note should be called right after storing
 // success message.
-func (b RoomRequest) JoinRoomRequest(ctx context.Context, room *v1resources.JoinRoomRequest) error {
+func (b RoomRequest) NewRoomRequest(ctx context.Context, room *v1resources.JoinRoomRequest) error {
 	room.ID = primitive.NewObjectID()
 
 	if err := b.db.Save(ctx, room, nil); err != nil {
@@ -32,11 +32,31 @@ func (b RoomRequest) JoinRoomRequest(ctx context.Context, room *v1resources.Join
 }
 
 func (b RoomRequest) AcceptRequest(ctx context.Context, ID primitive.ObjectID) error {
-	return b.db.UpdateByID(ctx, ID, bson.M{"accepted": true})
+	return b.db.UpdateByID(ctx, ID, bson.M{"accepted": true, "exitedRoom": false})
 }
 
 func (b RoomRequest) ExitRoom(ctx context.Context, ID primitive.ObjectID) error {
 	return b.db.UpdateByID(ctx, ID, bson.M{"exitedRoom": true})
+}
+
+func (b RoomRequest) GetUsersInRoom(ctx context.Context, roomID primitive.ObjectID) ([]v1resources.JoinRoomRequest, error) {
+	var rooms []v1resources.JoinRoomRequest
+
+	if err := b.db.FindMany(ctx, bson.M{"roomID": roomID}, nil, nil, 0, 0, &rooms); err != nil {
+		return nil, err
+	}
+
+	return rooms, nil
+}
+
+func (b RoomRequest) IsUserInRoom(ctx context.Context, roomID, userID primitive.ObjectID) (bool, error) {
+	var room *v1resources.JoinRoomRequest
+
+	if err := b.db.FindOne(ctx, bson.M{"roomID": roomID, "userID": userID}, nil, room); err != nil {
+		return false, err
+	}
+
+	return room != nil, nil
 }
 
 func (b RoomRequest) RetrieveUnacceptedRooms(ctx context.Context, userID primitive.ObjectID, limit, skip int64) (*v1resources.JoinRoomRequestList, error) {

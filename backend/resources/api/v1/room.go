@@ -4,10 +4,10 @@ import "go.mongodb.org/mongo-driver/bson/primitive"
 
 type JoinRoomRequest struct {
 	ID           primitive.ObjectID `bson:"_id" json:"_id"`
-	UserID       primitive.ObjectID `bson:"userID" json:"userID"`
-	UserToJoinID primitive.ObjectID `bson:"userToJoinID" json:"userToJoinID"`
-	RoomID       string             `bson:"roomID" json:"roomID"`
-	RoomName     string             `bson:"roomName" json:"roomName"`
+	UserID       primitive.ObjectID `bson:"userID" json:"userID" validate:"required"`
+	UserToJoinID primitive.ObjectID `bson:"userToJoinID" json:"userToJoinID" validate:"required"`
+	RoomID       primitive.ObjectID `bson:"roomID" json:"roomID" validate:"required"`
+	RoomName     string             `bson:"roomName" json:"roomName" validate:"required"`
 	Accepted     bool               `json:"accepted" bson:"accepted"`
 	ExitedRoom   bool               `json:"exitedRoom" bson:"exitedRoom"`
 }
@@ -39,10 +39,10 @@ type RoomOutput struct {
 
 // NewRoomRequest struct defines contents to create a new room.
 type Room struct {
-	ID           primitive.ObjectID `bson:"_id" json:"_id"`
-	RoomName     string             `bson:"roomName" json:"roomName,omitempty"`
-	RoomIcon     string             `bson:"roomIcon" json:"roomIcon"`
-	MessageCount int                `bson:"messageCount" json:"messageCount"`
+	ID             primitive.ObjectID `bson:"_id" json:"_id"`
+	CreateByUserID primitive.ObjectID `json:"createByUserID" bson:"createByUserID"`
+	RoomName       string             `bson:"roomName" json:"roomName,omitempty" validate:"required"`
+	RoomIcon       string             `bson:"roomIcon" json:"roomIcon"`
 }
 
 type RoomList struct {

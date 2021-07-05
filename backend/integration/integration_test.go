@@ -7,7 +7,6 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
-	"net/http/cookiejar"
 	"net/http/httptest"
 	"os"
 	"testing"
@@ -94,7 +93,6 @@ func integration() {
 	testHandler.server = httptest.NewTLSServer(router)
 	testHandler.client = testHandler.server.Client()
 
-	testHandler.client.Jar, err = cookiejar.New(nil)
 	panicOnError(err)
 }
 
