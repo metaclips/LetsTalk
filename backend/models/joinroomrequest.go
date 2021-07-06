@@ -49,14 +49,51 @@ func (b RoomRequest) GetUsersInRoom(ctx context.Context, roomID primitive.Object
 	return rooms, nil
 }
 
-func (b RoomRequest) IsUserInRoom(ctx context.Context, roomID, userID primitive.ObjectID) (bool, error) {
+func (b RoomRequest) GetUserAssociates(ctx context.Context, userID primitive.ObjectID) ([]primitive.ObjectID, error) {
+	var rooms []v1resources.JoinRoomRequest
+
+	if err := b.db.FindMany(ctx, bson.M{"userID": userID}, nil, nil, 0, 0, &rooms); err != nil {
+		return nil, err
+	}
+
+	associates := make(map[primitive.ObjectID]bool)
+	for _, room := range rooms {
+		var users []v1resources.JoinRoomRequest
+		if err := b.db.FindMany(ctx, bson.M{"roomID": room.RoomID}, nil, nil, 0, 0, &users); err != nil {
+			return nil, err
+		}
+
+		for _, user := range users {
+			associates[user.UserToJoinID] = true
+		}
+	}
+
+	userIDs := make([]primitive.ObjectID, 0)
+	for associate := range associates {
+		userIDs = append(userIDs, associate)
+	}
+
+	return userIDs, nil
+}
+
+func (b RoomRequest) IsRequesterAllowedInRoom(ctx context.Context, roomID, userID primitive.ObjectID) (bool, error) {
 	var room *v1resources.JoinRoomRequest
 
 	if err := b.db.FindOne(ctx, bson.M{"roomID": roomID, "userID": userID}, nil, room); err != nil {
 		return false, err
 	}
 
-	return room != nil, nil
+	return (room != nil && room.Accepted), nil
+}
+
+func (b RoomRequest) IsUserAllowedInRoom(ctx context.Context, roomID, userToJoinID primitive.ObjectID) (bool, error) {
+	var room *v1resources.JoinRoomRequest
+
+	if err := b.db.FindOne(ctx, bson.M{"roomID": roomID, "userToJoinID": userToJoinID}, nil, room); err != nil {
+		return false, err
+	}
+
+	return (room != nil && room.Accepted), nil
 }
 
 func (b RoomRequest) RetrieveUnacceptedRooms(ctx context.Context, userID primitive.ObjectID, limit, skip int64) (*v1resources.JoinRoomRequestList, error) {

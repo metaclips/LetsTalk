@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"sync"
 
 	"github.com/julienschmidt/httprouter"
 	apihelper "github.com/metaclips/LetsTalk/backend/apihelper"
@@ -13,7 +14,9 @@ import (
 	"github.com/metaclips/LetsTalk/backend/middlewares/cookies"
 	"github.com/metaclips/LetsTalk/backend/middlewares/database"
 	"github.com/metaclips/LetsTalk/backend/models"
+	v1resources "github.com/metaclips/LetsTalk/backend/resources/api/v1"
 	log "github.com/sirupsen/logrus"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -37,18 +40,31 @@ func StartV1() {
 	roomCollection := database.NewMongoStore(db, constants.RoomCollection)
 	messageCollection := database.NewMongoStore(db, constants.MessagesCollection)
 
-	_ = models.NewMessages(messageCollection)
+	messageModel := models.NewMessages(messageCollection)
 	roomModel := models.NewRoom(roomCollection)
 	roomRequestModel := models.NewRoomRequest(roomRequestCollection)
 	usersModel := models.NewUser(usersCollection)
 
 	usersCookie := cookies.NewSecureCookie(usersCollection)
 
-	homeController := v1controller.NewHomepageController(usersModel, roomModel, roomRequestModel, usersCookie)
+	wsHub := v1resources.Hub{
+		Broadcast:  make(chan v1resources.WSMessage),
+		Register:   make(chan v1resources.Subscription),
+		UnRegister: make(chan v1resources.Subscription),
+		Users: v1resources.WSUsers{
+			RoomUsers: make(map[primitive.ObjectID]*v1resources.Connection),
+			Mutex:     &sync.RWMutex{},
+		},
+	}
+
+	homeController := v1controller.NewHomepageController(messageModel, usersModel, roomModel, roomRequestModel, usersCookie)
 	loginController := v1controller.NewLoginController(usersModel, usersCookie)
 	usersController := v1controller.NewRegistrationController(usersModel)
+	wsController := v1controller.NewWebsocketController(&wsHub, messageModel, usersModel, roomModel, roomRequestModel, usersCookie)
 
-	router := NewRouter(homeController, loginController, usersController)
+	go wsController.Run()
+
+	router := NewRouter(homeController, loginController, usersController, wsController)
 	srv := http.Server{}
 
 	go func() {
@@ -79,13 +95,14 @@ func StartV1() {
 }
 
 func NewRouter(home *v1controller.HomepageController, login *v1controller.LoginController,
-	registration *v1controller.RegistrationController) *httprouter.Router {
+	registration *v1controller.RegistrationController, ws *v1controller.WebsocketController) *httprouter.Router {
 
 	router := httprouter.New()
 
 	router.POST("/v1/login", login.Login)
 	router.POST("/v1/register", registration.RegisterUser)
 	router.GET("/v1/home", home.HomePage)
+	router.GET("/v1/ws", ws.Websocket)
 
 	return router
 }

@@ -36,9 +36,8 @@ type PrunedUserList struct {
 }
 
 type UserStatus struct {
-	Name     string `json:"name"`
-	Email    string `json:"email"`
-	IsOnline bool   `json:"isOnline"`
+	UserID   primitive.ObjectID `json:"email"`
+	IsOnline bool               `json:"isOnline"`
 }
 
 type UserData struct {

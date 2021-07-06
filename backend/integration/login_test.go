@@ -45,6 +45,16 @@ func TestLogin(t *testing.T) {
 	}{
 		{
 			user: v1resources.UserLogin{
+				Email:    email,
+				Password: "password",
+			},
+			name:   "correct impl",
+			err:    "",
+			status: http.StatusOK,
+		},
+
+		{
+			user: v1resources.UserLogin{
 				Email:    "test",
 				Password: "password",
 			},
@@ -68,16 +78,6 @@ func TestLogin(t *testing.T) {
 			name:   "wrong password",
 			err:    api_errors.ErrInvalidCredentials.Error(),
 			status: http.StatusBadRequest,
-		},
-
-		{
-			user: v1resources.UserLogin{
-				Email:    email,
-				Password: "password",
-			},
-			name:   "correct impl",
-			err:    "",
-			status: http.StatusOK,
 		},
 	} {
 		resp, err := testHandler.makeNormalRequest("POST", fmt.Sprintf("%s/v1/login", testHandler.server.URL), user.user)

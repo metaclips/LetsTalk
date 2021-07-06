@@ -6,7 +6,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/gorilla/securecookie"
 	"github.com/metaclips/LetsTalk/backend/helpers/constants"
 	api_errors "github.com/metaclips/LetsTalk/backend/helpers/errors"
@@ -36,24 +35,24 @@ func NewSecureCookie(userDB database.Database) Cookies {
 	}
 }
 
-func (b *secureCookie) GenerateCookie(ctx context.Context, email, cookieName string) (string, error) {
+func (b *secureCookie) GenerateCookie(ctx context.Context, email, cookieName string) (string, string, error) {
 	cookie := cookieData{}
 	exitTime := time.Now().Add(maxTime)
-	cookie.UUID = uuid.New().String()
+	cookie.UUID = primitive.NewObjectID().Hex()
 	cookie.Email = email
 
 	// Update user UUID.
-	err := b.db.UpdateByID(ctx, email, bson.M{"$set": bson.M{"uuid": cookie.UUID, "expires": exitTime}})
+	err := b.db.UpdateOne(ctx, bson.M{"email": email}, bson.M{"uuid": cookie.UUID, "expires": exitTime})
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
 	encoded, err := b.handler.Encode(cookieName, cookie)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
-	return encoded, nil
+	return encoded, cookie.UUID, nil
 }
 
 func (b *secureCookie) CheckCookie(ctx context.Context, r *http.Request, cookieName string) (*primitive.ObjectID, error) {

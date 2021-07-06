@@ -37,6 +37,15 @@ func (u User) GetUserByID(ctx context.Context, ID primitive.ObjectID) (*v1resour
 	return &user, nil
 }
 
+func (u User) GetUserByUUID(ctx context.Context, uuid string) (*v1resources.UserData, error) {
+	user := v1resources.UserData{}
+	if err := u.db.FindOne(ctx, bson.M{"uuid": uuid}, nil, &user); err != nil {
+		return nil, err
+	}
+
+	return &user, nil
+}
+
 func (u User) GetUsersPrunedData(ctx context.Context, paging *paging.Paging) (*v1resources.PrunedUserList, error) {
 	users := make([]v1resources.PrunedUser, 0)
 

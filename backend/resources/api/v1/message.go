@@ -25,3 +25,9 @@ type MessagesList struct {
 	Data  []Message `json:"data"`
 	Count int64     `json:"count"`
 }
+
+type RequestMessage struct {
+	RoomID primitive.ObjectID `bson:"roomID" json:"roomID,omitempty" validate:"required"`
+	Skip   int                `json:"skip"`
+	Limit  int                `json:"limit"`
+}

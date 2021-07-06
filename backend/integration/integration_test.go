@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"sync"
 	"testing"
 
 	apihelpers "github.com/metaclips/LetsTalk/backend/apihelper"
@@ -20,6 +21,7 @@ import (
 	"github.com/metaclips/LetsTalk/backend/models"
 	v1resources "github.com/metaclips/LetsTalk/backend/resources/api/v1"
 	v1router "github.com/metaclips/LetsTalk/backend/router/v1"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -84,11 +86,24 @@ func integration() {
 
 	usersCookie := cookies.NewSecureCookie(usersCollection)
 
-	homeController := v1controller.NewHomepageController(usersModel, roomModel, roomRequestModel, usersCookie)
+	wsHub := v1resources.Hub{
+		Broadcast:  make(chan v1resources.WSMessage),
+		Register:   make(chan v1resources.Subscription),
+		UnRegister: make(chan v1resources.Subscription),
+		Users: v1resources.WSUsers{
+			RoomUsers: make(map[primitive.ObjectID]*v1resources.Connection),
+			Mutex:     &sync.RWMutex{},
+		},
+	}
+
+	homeController := v1controller.NewHomepageController(messagesModel, usersModel, roomModel, roomRequestModel, usersCookie)
 	loginController := v1controller.NewLoginController(usersModel, usersCookie)
 	usersController := v1controller.NewRegistrationController(usersModel)
+	wsController := v1controller.NewWebsocketController(&wsHub, messagesModel, usersModel, roomModel, roomRequestModel, usersCookie)
 
-	router := v1router.NewRouter(homeController, loginController, usersController)
+	go wsController.Run()
+
+	router := v1router.NewRouter(homeController, loginController, usersController, wsController)
 
 	testHandler.server = httptest.NewTLSServer(router)
 	testHandler.client = testHandler.server.Client()

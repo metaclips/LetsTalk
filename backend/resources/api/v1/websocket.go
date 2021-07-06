@@ -34,7 +34,7 @@ type Connection struct {
 
 type WSUsers struct {
 	// Registered users on a WS connections.
-	RoomUsers map[primitive.ObjectID]map[*Connection]bool
+	RoomUsers map[primitive.ObjectID]*Connection
 	// Lock.
 	Mutex *sync.RWMutex
 }

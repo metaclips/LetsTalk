@@ -15,6 +15,7 @@ import (
 	"github.com/metaclips/LetsTalk/backend/models"
 	v1resources "github.com/metaclips/LetsTalk/backend/resources/api/v1"
 	log "github.com/sirupsen/logrus"
+	"go.mongodb.org/mongo-driver/mongo"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -60,13 +61,28 @@ func (l LoginController) Login(w http.ResponseWriter, req *http.Request, _ httpr
 		return
 	}
 
-	cookie, err := l.cookie.GenerateCookie(l.ctx, login.Email, constants.UserCookieName)
+	cookie, uuid, err := l.cookie.GenerateCookie(l.ctx, login.Email, constants.UserCookieName)
 
 	if err != nil {
 		log.Errorln("error generating cookies for user: ", err)
-		apihelpers.Respond(w, http.StatusInternalServerError, nil, "", api_errors.ErrGeneric.Error())
+		status, errVal := getStatusAndErr(err)
+		apihelpers.Respond(w, status, nil, "", errVal)
 		return
 	}
 
-	apihelpers.Respond(w, http.StatusOK, cookie, "successful login", "")
+	apihelpers.Respond(w, http.StatusOK, v1resources.LoginResponse{
+		Encoded:  cookie,
+		WSTicket: uuid,
+	}, "successful login", "")
+}
+
+func getStatusAndErr(err error) (status int, errVal string) {
+	if api_errors.IsMongoDup(err) {
+		return http.StatusBadRequest, "content already registered"
+	}
+	if err == mongo.ErrNoDocuments {
+		return http.StatusBadRequest, "content does not exist"
+	}
+
+	return http.StatusInternalServerError, api_errors.ErrGeneric.Error()
 }
