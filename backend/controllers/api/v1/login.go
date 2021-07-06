@@ -62,7 +62,6 @@ func (l LoginController) Login(w http.ResponseWriter, req *http.Request, _ httpr
 	}
 
 	cookie, uuid, err := l.cookie.GenerateCookie(l.ctx, login.Email, constants.UserCookieName)
-
 	if err != nil {
 		log.Errorln("error generating cookies for user: ", err)
 		status, errVal := getStatusAndErr(err)
@@ -73,6 +72,7 @@ func (l LoginController) Login(w http.ResponseWriter, req *http.Request, _ httpr
 	apihelpers.Respond(w, http.StatusOK, v1resources.LoginResponse{
 		Encoded:  cookie,
 		WSTicket: uuid,
+		UserID:   userData.ID,
 	}, "successful login", "")
 }
 

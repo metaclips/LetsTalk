@@ -200,9 +200,7 @@ func (h WebsocketController) readPump(userID primitive.ObjectID, session v1resou
 	)
 
 	for {
-		var err error
 		_, msg, err := c.WS.ReadMessage()
-
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway) {
 				log.Errorln("error: ", err)
@@ -400,13 +398,24 @@ func (h WebsocketController) joinRoomRequest(userID primitive.ObjectID, msg []by
 	}
 
 	// Ensure the person making the request is a member of the room.
-	isUserInRoom, err := h.roomRequest.IsRequesterAllowedInRoom(h.ctx, request.RoomID, userID)
+	isRequesterInRoom, err := h.roomRequest.IsRequesterAllowedInRoom(h.ctx, request.RoomID, userID)
 	if err != nil {
 		// ToDo: Return error message.
 		return
 	}
 
-	if !isUserInRoom {
+	if !isRequesterInRoom {
+		// ToDo: Return error message.
+		return
+	}
+
+	hasUserAccepted, err := h.roomRequest.HasUserAcceptedJoinRequest(h.ctx, request.UserToJoinID, request.RoomID)
+	if err != nil {
+		// ToDo: Return error message.
+		return
+	}
+
+	if hasUserAccepted {
 		// ToDo: Return error message.
 		return
 	}
@@ -425,6 +434,7 @@ func (h WebsocketController) joinRoomRequest(userID primitive.ObjectID, msg []by
 	request.ID = primitive.NewObjectID()
 
 	if err := h.roomRequest.NewRoomRequest(h.ctx, &request); err != nil {
+		log.Errorln("error creating room request:", err)
 		// ToDo: Return error message.
 		return
 	}
@@ -435,7 +445,11 @@ func (h WebsocketController) joinRoomRequest(userID primitive.ObjectID, msg []by
 		return
 	}
 
+	// Broadcast to user to join, that there's a request.
+	h.sendMessage(request, request.UserToJoinID)
+
 	h.saveMessageAndNotifyRoom(request.RoomID, request.UserID, fmt.Sprintf("%s %s (%s) has requested %s %s (%s) to join the room.", requester.FirstName, requester.LastName, requester.Email, userToJoin.FirstName, userToJoin.LastName, userToJoin.Email))
+	// Send to the other user the room request.
 }
 
 func (h WebsocketController) acceptRoomRequest(userID primitive.ObjectID, msg []byte) {
@@ -450,13 +464,13 @@ func (h WebsocketController) acceptRoomRequest(userID primitive.ObjectID, msg []
 		return
 	}
 
-	userIsAllowedToRoom, err := h.roomRequest.IsUserAllowedInRoom(h.ctx, request.RoomID, request.UserToJoinID)
+	hasUserAcceptedJoinRequest, err := h.roomRequest.HasUserAcceptedJoinRequest(h.ctx, request.RoomID, request.UserToJoinID)
 	if err != nil {
 		// ToDo: Return error message.
 		return
 	}
 
-	if !userIsAllowedToRoom {
+	if hasUserAcceptedJoinRequest {
 		// ToDo: Return error message.
 		return
 	}
@@ -473,6 +487,7 @@ func (h WebsocketController) acceptRoomRequest(userID primitive.ObjectID, msg []
 
 	request.Accepted = true
 	request.ExitedRoom = false
+	request.RejectRoom = false
 
 	if err := h.roomRequest.AcceptRequest(h.ctx, request.ID); err != nil {
 		log.Errorln("error accepting room request")
@@ -485,6 +500,12 @@ func (h WebsocketController) acceptRoomRequest(userID primitive.ObjectID, msg []
 		// ToDo: Return error message.
 		return
 	}
+
+	// Broadcast to user to join that there's a new room.
+	h.sendMessage(v1resources.Room{
+		RoomName: request.RoomName,
+		ID:       request.RoomID,
+	}, userID)
 
 	h.saveMessageAndNotifyRoom(request.RoomID, request.UserID, fmt.Sprintf("%s %s (%s) has has joined the room.", userToJoin.FirstName, userToJoin.LastName, userToJoin.Email))
 }
@@ -529,6 +550,11 @@ func (h WebsocketController) createNewRoom(userID primitive.ObjectID, msg []byte
 
 	userToJoin, err := h.user.GetUserByID(h.ctx, userID)
 	if err != nil {
+		// ToDo: Return error message.
+		return
+	}
+
+	if err := h.sendMessage(room, userID); err != nil {
 		// ToDo: Return error message.
 		return
 	}

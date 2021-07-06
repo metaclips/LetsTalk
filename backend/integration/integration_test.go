@@ -11,6 +11,7 @@ import (
 	"os"
 	"sync"
 	"testing"
+	"time"
 
 	apihelpers "github.com/metaclips/LetsTalk/backend/apihelper"
 	v1controller "github.com/metaclips/LetsTalk/backend/controllers/api/v1"
@@ -24,6 +25,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type handler struct {
@@ -105,16 +107,35 @@ func integration() {
 
 	router := v1router.NewRouter(homeController, loginController, usersController, wsController)
 
-	testHandler.server = httptest.NewTLSServer(router)
+	testHandler.server = httptest.NewServer(router)
 	testHandler.client = testHandler.server.Client()
 
 	panicOnError(err)
 }
 
-func (c *handler) seedOneUser(user *v1resources.UserData) error {
+func (c *handler) seedOneUser(email string) (*v1resources.UserData, error) {
+	password, err := bcrypt.GenerateFromPassword([]byte("password"), constants.BcryptCost)
+	if err != nil {
+		return nil, err
+	}
+
+	user := v1resources.UserData{
+		ID:         primitive.NewObjectID(),
+		Email:      email,
+		FirstName:  "Michael",
+		LastName:   "Uti",
+		DOB:        time.Now(),
+		Password:   password,
+		Department: constants.ComputerEngineering,
+		Faculty:    constants.EngineeringFaculty,
+		IsStaff:    false,
+		Year:       2015,
+		CreatedAt:  time.Now(),
+	}
+
 	collection := c.db.Collection(constants.UserCollection)
-	_, err := collection.InsertOne(c.ctx, user)
-	return err
+	_, err = collection.InsertOne(c.ctx, &user)
+	return &user, err
 }
 
 func (c *handler) makeNormalRequest(method, urlVal string, body interface{}) (*http.Response, error) {
@@ -127,22 +148,6 @@ func (c *handler) makeNormalRequest(method, urlVal string, body interface{}) (*h
 	if err != nil {
 		return nil, err
 	}
-
-	return c.client.Do(req)
-}
-
-func (c *handler) makeNormalCookieRequest(method, urlVal string, body interface{}, cookie *http.Cookie) (*http.Response, error) {
-	data, err := json.Marshal(body)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest(method, urlVal, bytes.NewBuffer(data))
-	if err != nil {
-		return nil, err
-	}
-
-	req.AddCookie(cookie)
 
 	return c.client.Do(req)
 }

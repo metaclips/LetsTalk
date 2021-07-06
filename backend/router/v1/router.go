@@ -102,7 +102,7 @@ func NewRouter(home *v1controller.HomepageController, login *v1controller.LoginC
 	router.POST("/v1/login", login.Login)
 	router.POST("/v1/register", registration.RegisterUser)
 	router.GET("/v1/home", home.HomePage)
-	router.GET("/v1/ws", ws.Websocket)
+	router.GET("/v1/ws/:userID/:ticket", ws.Websocket)
 
 	return router
 }

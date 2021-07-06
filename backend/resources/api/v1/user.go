@@ -45,7 +45,6 @@ type UserData struct {
 	Email        string             `bson:"email" json:"email"`
 	FirstName    string             `bson:"firstName" json:"firstName"`
 	LastName     string             `bson:"lastName" json:"lastName"`
-	MatricNumber string             `bson:"matricNumber" json:"matricNumber"`
 	Department   string             `bson:"department" json:"department" validate:"required"`
 	Faculty      string             `bson:"faculty" json:"faculty"`
 	UUID         string             `bson:"uuid" json:"uuid"`
@@ -55,4 +54,5 @@ type UserData struct {
 	DOB          time.Time          `bson:"dob" json:"dob"`
 	CreatedAt    time.Time          `bson:"createdAt" json:"-"`
 	DeletedAt    *time.Time         `bson:"deletedAt" json:"-"`
+	MatricNumber *string            `bson:"matricNumber" json:"matricNumber"`
 }

@@ -9,11 +9,13 @@ type JoinRoomRequest struct {
 	RoomID       primitive.ObjectID `bson:"roomID" json:"roomID" validate:"required"`
 	RoomName     string             `bson:"roomName" json:"roomName" validate:"required"`
 	Accepted     bool               `json:"accepted" bson:"accepted"`
+	RejectRoom   bool               `json:"rejectRoom" bson:"rejectRoom"`
 	ExitedRoom   bool               `json:"exitedRoom" bson:"exitedRoom"`
 }
 
 type GetJoinedRoomRequest struct {
-	ID primitive.ObjectID `bson:"_id" json:"_id"`
+	ID       primitive.ObjectID `bson:"_id" json:"_id"`
+	RoomName string             `bson:"roomName" json:"roomName" validate:"required"`
 }
 
 type JoinRoomRequestList struct {

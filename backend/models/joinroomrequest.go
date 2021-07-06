@@ -7,6 +7,7 @@ import (
 	v1resources "github.com/metaclips/LetsTalk/backend/resources/api/v1"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 type RoomRequest struct {
@@ -32,17 +33,21 @@ func (b RoomRequest) NewRoomRequest(ctx context.Context, room *v1resources.JoinR
 }
 
 func (b RoomRequest) AcceptRequest(ctx context.Context, ID primitive.ObjectID) error {
-	return b.db.UpdateByID(ctx, ID, bson.M{"accepted": true, "exitedRoom": false})
+	return b.db.UpdateByID(ctx, ID, bson.M{"accepted": true, "exitedRoom": false, "rejectRoom": false})
 }
 
 func (b RoomRequest) ExitRoom(ctx context.Context, ID primitive.ObjectID) error {
-	return b.db.UpdateByID(ctx, ID, bson.M{"exitedRoom": true})
+	return b.db.UpdateByID(ctx, ID, bson.M{"accepted": false, "exitedRoom": true, "rejectRoom": false})
+}
+
+func (b RoomRequest) RejectRoom(ctx context.Context, ID primitive.ObjectID) error {
+	return b.db.UpdateByID(ctx, ID, bson.M{"accepted": false, "exitedRoom": false, "rejectRoom": true})
 }
 
 func (b RoomRequest) GetUsersInRoom(ctx context.Context, roomID primitive.ObjectID) ([]v1resources.JoinRoomRequest, error) {
 	var rooms []v1resources.JoinRoomRequest
 
-	if err := b.db.FindMany(ctx, bson.M{"roomID": roomID}, nil, nil, 0, 0, &rooms); err != nil {
+	if err := b.db.FindMany(ctx, bson.M{"roomID": roomID, "accepted": true, "exitedRoom": false, "rejectRoom": false}, nil, nil, 0, 0, &rooms); err != nil {
 		return nil, err
 	}
 
@@ -52,14 +57,14 @@ func (b RoomRequest) GetUsersInRoom(ctx context.Context, roomID primitive.Object
 func (b RoomRequest) GetUserAssociates(ctx context.Context, userID primitive.ObjectID) ([]primitive.ObjectID, error) {
 	var rooms []v1resources.JoinRoomRequest
 
-	if err := b.db.FindMany(ctx, bson.M{"userID": userID}, nil, nil, 0, 0, &rooms); err != nil {
+	if err := b.db.FindMany(ctx, bson.M{"userID": userID, "accepted": true, "exitedRoom": false, "rejectRoom": false}, nil, nil, 0, 0, &rooms); err != nil {
 		return nil, err
 	}
 
 	associates := make(map[primitive.ObjectID]bool)
 	for _, room := range rooms {
 		var users []v1resources.JoinRoomRequest
-		if err := b.db.FindMany(ctx, bson.M{"roomID": room.RoomID}, nil, nil, 0, 0, &users); err != nil {
+		if err := b.db.FindMany(ctx, bson.M{"roomID": room.RoomID, "accepted": true, "exitedRoom": false, "rejectRoom": false}, nil, nil, 0, 0, &users); err != nil {
 			return nil, err
 		}
 
@@ -79,7 +84,7 @@ func (b RoomRequest) GetUserAssociates(ctx context.Context, userID primitive.Obj
 func (b RoomRequest) IsRequesterAllowedInRoom(ctx context.Context, roomID, userID primitive.ObjectID) (bool, error) {
 	var room *v1resources.JoinRoomRequest
 
-	if err := b.db.FindOne(ctx, bson.M{"roomID": roomID, "userID": userID}, nil, room); err != nil {
+	if err := b.db.FindOne(ctx, bson.M{"roomID": roomID, "userID": userID}, nil, &room); err != nil && err != mongo.ErrNoDocuments {
 		return false, err
 	}
 
@@ -89,7 +94,17 @@ func (b RoomRequest) IsRequesterAllowedInRoom(ctx context.Context, roomID, userI
 func (b RoomRequest) IsUserAllowedInRoom(ctx context.Context, roomID, userToJoinID primitive.ObjectID) (bool, error) {
 	var room *v1resources.JoinRoomRequest
 
-	if err := b.db.FindOne(ctx, bson.M{"roomID": roomID, "userToJoinID": userToJoinID}, nil, room); err != nil {
+	if err := b.db.FindOne(ctx, bson.M{"roomID": roomID, "userToJoinID": userToJoinID}, nil, &room); err != nil && err != mongo.ErrNoDocuments {
+		return false, err
+	}
+
+	return room != nil, nil
+}
+
+func (b RoomRequest) HasUserAcceptedJoinRequest(ctx context.Context, userID, roomID primitive.ObjectID) (bool, error) {
+	var room *v1resources.JoinRoomRequest
+
+	if err := b.db.FindOne(ctx, bson.M{"roomID": roomID, "userToJoinID": userID}, nil, &room); err != nil && err != mongo.ErrNoDocuments {
 		return false, err
 	}
 
@@ -99,11 +114,11 @@ func (b RoomRequest) IsUserAllowedInRoom(ctx context.Context, roomID, userToJoin
 func (b RoomRequest) RetrieveUnacceptedRooms(ctx context.Context, userID primitive.ObjectID, limit, skip int64) (*v1resources.JoinRoomRequestList, error) {
 	var rooms []v1resources.JoinRoomRequest
 
-	if err := b.db.FindMany(ctx, bson.M{"userToJoinID": userID, "accepted": false}, nil, nil, limit, skip, &rooms); err != nil {
+	if err := b.db.FindMany(ctx, bson.M{"userToJoinID": userID, "accepted": false, "exitedRoom": false, "rejectRoom": false}, nil, nil, limit, skip, &rooms); err != nil {
 		return nil, err
 	}
 
-	count, err := b.db.Count(ctx, bson.M{"userToJoinID": userID, "accepted": false})
+	count, err := b.db.Count(ctx, bson.M{"userToJoinID": userID, "accepted": false, "exitedRoom": false, "rejectRoom": false})
 	if err != nil {
 		return nil, err
 	}
@@ -117,12 +132,31 @@ func (b RoomRequest) RetrieveUnacceptedRooms(ctx context.Context, userID primiti
 func (b RoomRequest) RetrieveAcceptedJoinRequest(ctx context.Context, userID primitive.ObjectID, limit, skip int64) (*v1resources.GetJoinedRoomRequestList, error) {
 	var rooms []v1resources.GetJoinedRoomRequest
 
-	err := b.db.FindMany(ctx, bson.M{"userToJoinID": userID, "accepted": true}, nil, bson.M{"_id": -1}, limit, skip, &rooms)
+	err := b.db.FindMany(ctx, bson.M{"userToJoinID": userID, "accepted": true, "exitedRoom": false, "rejectRoom": false}, nil, bson.M{"_id": -1}, limit, skip, &rooms)
 	if err != nil {
 		return nil, err
 	}
 
-	count, err := b.db.Count(ctx, bson.M{"userToJoinID": userID, "accepted": true})
+	count, err := b.db.Count(ctx, bson.M{"userToJoinID": userID, "accepted": true, "exitedRoom": false, "rejectRoom": false})
+	if err != nil {
+		return nil, err
+	}
+
+	return &v1resources.GetJoinedRoomRequestList{
+		Data:  rooms,
+		Count: count,
+	}, nil
+}
+
+func (b RoomRequest) RetrieveRejectedRoomRequest(ctx context.Context, userID primitive.ObjectID, limit, skip int64) (*v1resources.GetJoinedRoomRequestList, error) {
+	var rooms []v1resources.GetJoinedRoomRequest
+
+	err := b.db.FindMany(ctx, bson.M{"userToJoinID": userID, "accepted": false, "rejectRoom": true, "exitedRoom": false}, nil, bson.M{"_id": -1}, limit, skip, &rooms)
+	if err != nil {
+		return nil, err
+	}
+
+	count, err := b.db.Count(ctx, bson.M{"userToJoinID": userID, "accepted": false, "exitedRoom": false, "rejectRoom": false})
 	if err != nil {
 		return nil, err
 	}
