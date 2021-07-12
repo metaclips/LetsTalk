@@ -7,16 +7,18 @@ import (
 )
 
 type UserRegistration struct {
-	Email        string    `bson:"email" json:"email" validate:"required,email"`
-	FirstName    string    `bson:"firstName" json:"firstName" validate:"required"`
-	LastName     string    `bson:"lastName" json:"lastName" validate:"required"`
-	MatricNumber string    `bson:"matricNumber" json:"matricNumber"`
-	Department   string    `bson:"department" json:"department" validate:"required"`
-	Faculty      string    `bson:"faculty" json:"faculty"`
-	Password     string    `bson:"-" json:"password" validate:"required"`
-	Year         int       `bson:"year" json:"year"`
-	IsStaff      bool      `bson:"isStaff" json:"isStaff"`
-	DOB          time.Time `bson:"dob" json:"dob" validate:"required"`
+	Email        string     `bson:"email" json:"email" validate:"required,email"`
+	FirstName    string     `bson:"firstName" json:"firstName" validate:"required"`
+	LastName     string     `bson:"lastName" json:"lastName" validate:"required"`
+	MatricNumber string     `bson:"matricNumber" json:"matricNumber"`
+	Department   string     `bson:"department" json:"department" validate:"required"`
+	Faculty      string     `bson:"faculty" json:"faculty"`
+	Password     string     `bson:"-" json:"password" validate:"required"`
+	Year         int        `bson:"year" json:"year"`
+	IsStaff      bool       `bson:"isStaff" json:"isStaff"`
+	DOB          time.Time  `bson:"dob" json:"dob" validate:"required"`
+	CreatedAt    time.Time  `json:"createdAt" bson:"createdAt"`
+	DeletedAt    *time.Time `json:"deletedAt" bson:"deletedAt"`
 }
 
 type UserLogin struct {
@@ -52,7 +54,7 @@ type UserData struct {
 	Year         int                `bson:"year" json:"year"`
 	Password     []byte             `bson:"password" json:"-"`
 	DOB          time.Time          `bson:"dob" json:"dob"`
+	MatricNumber *string            `bson:"matricNumber" json:"matricNumber"`
 	CreatedAt    time.Time          `bson:"createdAt" json:"-"`
 	DeletedAt    *time.Time         `bson:"deletedAt" json:"-"`
-	MatricNumber *string            `bson:"matricNumber" json:"matricNumber"`
 }

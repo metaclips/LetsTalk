@@ -152,6 +152,22 @@ func (c *handler) makeNormalRequest(method, urlVal string, body interface{}) (*h
 	return c.client.Do(req)
 }
 
+func (c *handler) makeAuthRequest(method, urlVal, token string, body interface{}) (*http.Response, error) {
+	data, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(method, urlVal, bytes.NewBuffer(data))
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Set("Authorization", "BEARER"+" "+token)
+
+	return c.client.Do(req)
+}
+
 func (c *handler) getResponseData(respBody io.ReadCloser, data interface{}) error {
 	responseData, err := ioutil.ReadAll(respBody)
 	if err != nil {

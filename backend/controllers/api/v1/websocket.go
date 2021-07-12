@@ -334,8 +334,8 @@ func (h WebsocketController) newMessage(userID primitive.ObjectID, msg []byte) {
 		return
 	}
 
-	message.Time = time.Now()
 	message.ID = primitive.NewObjectID()
+	message.CreatedAt = time.Now()
 
 	if err := h.messages.NewMessage(h.ctx, &message); err != nil {
 		log.Errorln("error saving message to DB:", err)
@@ -372,7 +372,7 @@ func (h WebsocketController) requestMessages(userID primitive.ObjectID, msg []by
 		return
 	}
 
-	messages, err := h.messages.RetrieveMessagesForRoom(h.ctx, request.RoomID, int64(request.Limit), int64(request.Skip))
+	messages, err := h.messages.RetrieveMessagesForRoom(h.ctx, request.RoomID, request.Limit, request.Skip)
 	if err != nil {
 		log.Errorln("error retrieving requested message to user:", err)
 
@@ -432,6 +432,7 @@ func (h WebsocketController) joinRoomRequest(userID primitive.ObjectID, msg []by
 	request.Accepted = false
 	request.ExitedRoom = false
 	request.ID = primitive.NewObjectID()
+	request.CreatedAt = time.Now()
 
 	if err := h.roomRequest.NewRoomRequest(h.ctx, &request); err != nil {
 		log.Errorln("error creating room request:", err)
@@ -485,10 +486,6 @@ func (h WebsocketController) acceptRoomRequest(userID primitive.ObjectID, msg []
 		return
 	}
 
-	request.Accepted = true
-	request.ExitedRoom = false
-	request.RejectRoom = false
-
 	if err := h.roomRequest.AcceptRequest(h.ctx, request.ID); err != nil {
 		log.Errorln("error accepting room request")
 		// ToDo: Return error message.
@@ -528,6 +525,8 @@ func (h WebsocketController) createNewRoom(userID primitive.ObjectID, msg []byte
 	}
 
 	room.ID = primitive.NewObjectID()
+	room.CreatedAt = time.Now()
+
 	if err := h.room.CreateNewRoom(h.ctx, &room); err != nil {
 		// ToDo: Return error message.
 		log.Errorln("error creating new room:", err)
@@ -541,6 +540,7 @@ func (h WebsocketController) createNewRoom(userID primitive.ObjectID, msg []byte
 		RoomID:       room.ID,
 		RoomName:     room.RoomName,
 		Accepted:     true,
+		CreatedAt:    time.Now(),
 	})
 
 	if err != nil {
@@ -583,12 +583,12 @@ func (h WebsocketController) broadcastOnlineStatusToAllUserRoom(userID primitive
 
 func (h WebsocketController) saveMessageAndNotifyRoom(roomID, userID primitive.ObjectID, message string) {
 	data := v1resources.Message{
-		ID:      primitive.NewObjectID(),
-		RoomID:  roomID,
-		UserID:  userID,
-		Message: message,
-		Type:    constants.NewMessageMsgType,
-		Time:    time.Now(),
+		ID:        primitive.NewObjectID(),
+		RoomID:    roomID,
+		UserID:    userID,
+		Message:   message,
+		Type:      constants.NewMessageMsgType,
+		CreatedAt: time.Now(),
 	}
 
 	err := h.messages.NewMessage(h.ctx, &data)

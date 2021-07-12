@@ -111,10 +111,10 @@ func (b RoomRequest) HasUserAcceptedJoinRequest(ctx context.Context, userID, roo
 	return (room != nil && room.Accepted), nil
 }
 
-func (b RoomRequest) RetrieveUnacceptedRooms(ctx context.Context, userID primitive.ObjectID, limit, skip int64) (*v1resources.JoinRoomRequestList, error) {
+func (b RoomRequest) RetrieveUnacceptedRooms(ctx context.Context, userID primitive.ObjectID, limit, skip int) (*v1resources.JoinRoomRequestList, error) {
 	var rooms []v1resources.JoinRoomRequest
 
-	if err := b.db.FindMany(ctx, bson.M{"userToJoinID": userID, "accepted": false, "exitedRoom": false, "rejectRoom": false}, nil, nil, limit, skip, &rooms); err != nil {
+	if err := b.db.FindMany(ctx, bson.M{"userToJoinID": userID, "accepted": false, "exitedRoom": false, "rejectRoom": false}, nil, nil, int64(limit), int64(skip), &rooms); err != nil {
 		return nil, err
 	}
 
@@ -129,10 +129,10 @@ func (b RoomRequest) RetrieveUnacceptedRooms(ctx context.Context, userID primiti
 	}, nil
 }
 
-func (b RoomRequest) RetrieveAcceptedJoinRequest(ctx context.Context, userID primitive.ObjectID, limit, skip int64) (*v1resources.GetJoinedRoomRequestList, error) {
+func (b RoomRequest) RetrieveAcceptedJoinRequest(ctx context.Context, userID primitive.ObjectID, limit, skip int) (*v1resources.GetJoinedRoomRequestList, error) {
 	var rooms []v1resources.GetJoinedRoomRequest
 
-	err := b.db.FindMany(ctx, bson.M{"userToJoinID": userID, "accepted": true, "exitedRoom": false, "rejectRoom": false}, nil, bson.M{"_id": -1}, limit, skip, &rooms)
+	err := b.db.FindMany(ctx, bson.M{"userToJoinID": userID, "accepted": true, "exitedRoom": false, "rejectRoom": false}, nil, bson.M{"_id": -1}, int64(limit), int64(skip), &rooms)
 	if err != nil {
 		return nil, err
 	}
@@ -148,10 +148,10 @@ func (b RoomRequest) RetrieveAcceptedJoinRequest(ctx context.Context, userID pri
 	}, nil
 }
 
-func (b RoomRequest) RetrieveRejectedRoomRequest(ctx context.Context, userID primitive.ObjectID, limit, skip int64) (*v1resources.GetJoinedRoomRequestList, error) {
+func (b RoomRequest) RetrieveRejectedRoomRequest(ctx context.Context, userID primitive.ObjectID, limit, skip int) (*v1resources.GetJoinedRoomRequestList, error) {
 	var rooms []v1resources.GetJoinedRoomRequest
 
-	err := b.db.FindMany(ctx, bson.M{"userToJoinID": userID, "accepted": false, "rejectRoom": true, "exitedRoom": false}, nil, bson.M{"_id": -1}, limit, skip, &rooms)
+	err := b.db.FindMany(ctx, bson.M{"userToJoinID": userID, "accepted": false, "rejectRoom": true, "exitedRoom": false}, nil, bson.M{"_id": -1}, int64(limit), int64(skip), &rooms)
 	if err != nil {
 		return nil, err
 	}

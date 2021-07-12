@@ -7,12 +7,14 @@ import (
 	"net/http"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/gorilla/websocket"
 	apihelpers "github.com/metaclips/LetsTalk/backend/apihelper"
 	"github.com/metaclips/LetsTalk/backend/helpers/constants"
 	v1resources "github.com/metaclips/LetsTalk/backend/resources/api/v1"
 	"github.com/stretchr/testify/assert"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 func TestCreateNewRoom(t *testing.T) {
@@ -153,6 +155,87 @@ func TestAcceptRoomRequest(t *testing.T) {
 	assert.NotNil(t, roomMessage)
 
 	assert.Equal(t, fmt.Sprintf("%s %s (%s) has has joined the room.", userData2.FirstName, userData2.LastName, userData2.Email), roomMessage.Message)
+}
+
+func TestGetRoomRequestOnLogin(t *testing.T) {
+	email := "michaelnew52@students.unilag.edu.ng"
+
+	userData, err := testHandler.seedOneUser(email)
+	assert.NoError(t, err)
+
+	acceptedRoomID := primitive.NewObjectID()
+	unacceptedRoomID := primitive.NewObjectID()
+	roomID := primitive.NewObjectID()
+
+	err = testHandler.roomRequest.NewRoomRequest(testHandler.ctx, &v1resources.JoinRoomRequest{
+		ID:           primitive.NewObjectID(),
+		UserID:       primitive.NewObjectID(),
+		UserToJoinID: userData.ID,
+		RoomID:       unacceptedRoomID,
+		RoomName:     "Test Room",
+		CreatedAt:    time.Now(),
+	})
+	assert.NoError(t, err)
+
+	err = testHandler.room.CreateNewRoom(testHandler.ctx, &v1resources.Room{
+		ID:             roomID,
+		CreateByUserID: primitive.NewObjectID(),
+		RoomName:       "Test Room",
+		RoomIcon:       "",
+		CreatedAt:      time.Now(),
+	})
+	assert.NoError(t, err)
+
+	err = testHandler.roomRequest.NewRoomRequest(testHandler.ctx, &v1resources.JoinRoomRequest{
+		ID:           acceptedRoomID,
+		UserID:       primitive.NewObjectID(),
+		UserToJoinID: userData.ID,
+		RoomID:       roomID,
+		RoomName:     "Test Room Accepted",
+		Accepted:     true,
+		CreatedAt:    time.Now(),
+	})
+	assert.NoError(t, err)
+
+	login := v1resources.UserLogin{
+		Email:    userData.Email,
+		Password: "password",
+	}
+
+	resp, err := testHandler.makeNormalRequest("POST", fmt.Sprintf("%s/v1/login", testHandler.server.URL), login)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+	loginResponse := struct {
+		Data       v1resources.LoginResponse `json:"data"`
+		Msg        string                    `json:"msg"`
+		Error      string                    `json:"error"`
+		StatusCode int                       `json:"statusCode"`
+	}{}
+
+	err = testHandler.getResponseData(resp.Body, &loginResponse)
+	assert.NoError(t, err)
+
+	resp, err = testHandler.makeAuthRequest("GET", fmt.Sprintf("%s/v1/home", testHandler.server.URL), loginResponse.Data.Token, nil)
+	assert.NoError(t, err)
+
+	homeResponse := struct {
+		Data       v1resources.HomeResponse `json:"data"`
+		Msg        string                   `json:"msg"`
+		Error      string                   `json:"error"`
+		StatusCode int                      `json:"statusCode"`
+	}{}
+
+	err = testHandler.getResponseData(resp.Body, &homeResponse)
+	assert.NoError(t, err)
+
+	if assert.Equal(t, 1, homeResponse.Data.RoomRequestList.Count) {
+		assert.Equal(t, unacceptedRoomID, homeResponse.Data.RoomRequestList.Data[0].RoomID)
+	}
+
+	if assert.Equal(t, 1, homeResponse.Data.JoinedRoomList.Count) {
+		assert.Equal(t, roomID, homeResponse.Data.JoinedRoomList.Data[0].ID)
+	}
 }
 
 func createWSConn(email string) (*websocket.Conn, error) {

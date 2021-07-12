@@ -215,8 +215,9 @@ func (d *mongoDB) CompleteDeleteOne(ctx context.Context, fields map[string]inter
 	return nil
 }
 
-func (d *mongoDB) Count(ctx context.Context, fields map[string]interface{}) (int64, error) {
+func (d *mongoDB) Count(ctx context.Context, fields map[string]interface{}) (int, error) {
 	fields["deletedAt"] = nil
 
-	return d.collection.CountDocuments(ctx, fields)
+	count, err := d.collection.CountDocuments(ctx, fields)
+	return int(count), err
 }

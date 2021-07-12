@@ -30,5 +30,5 @@ type Database interface {
 	// Completely delete content with specified field.
 	CompleteDeleteOne(ctx context.Context, fields map[string]interface{}) error
 	// Find number of contents of fields in DB.
-	Count(ctx context.Context, fields map[string]interface{}) (int64, error)
+	Count(ctx context.Context, fields map[string]interface{}) (int, error)
 }

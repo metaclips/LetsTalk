@@ -1,6 +1,10 @@
 package v1resources
 
-import "go.mongodb.org/mongo-driver/bson/primitive"
+import (
+	"time"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
+)
 
 type JoinRoomRequest struct {
 	ID           primitive.ObjectID `bson:"_id" json:"_id"`
@@ -11,21 +15,23 @@ type JoinRoomRequest struct {
 	Accepted     bool               `json:"accepted" bson:"accepted"`
 	RejectRoom   bool               `json:"rejectRoom" bson:"rejectRoom"`
 	ExitedRoom   bool               `json:"exitedRoom" bson:"exitedRoom"`
+	CreatedAt    time.Time          `bson:"createdAt" json:"-"`
+	DeletedAt    *time.Time         `bson:"deletedAt" json:"-"`
 }
 
 type GetJoinedRoomRequest struct {
-	ID       primitive.ObjectID `bson:"_id" json:"_id"`
+	RoomID   primitive.ObjectID `bson:"roomID" json:"roomID"`
 	RoomName string             `bson:"roomName" json:"roomName" validate:"required"`
 }
 
 type JoinRoomRequestList struct {
 	Data  []JoinRoomRequest `json:"data"`
-	Count int64             `json:"count"`
+	Count int               `json:"count"`
 }
 
 type GetJoinedRoomRequestList struct {
 	Data  []GetJoinedRoomRequest `json:"data"`
-	Count int64                  `json:"count"`
+	Count int                    `json:"count"`
 }
 
 // Room struct defineds content details for users room.
@@ -45,9 +51,11 @@ type Room struct {
 	CreateByUserID primitive.ObjectID `json:"createByUserID" bson:"createByUserID"`
 	RoomName       string             `bson:"roomName" json:"roomName,omitempty" validate:"required"`
 	RoomIcon       string             `bson:"roomIcon" json:"roomIcon"`
+	CreatedAt      time.Time          `bson:"createdAt" json:"-"`
+	DeletedAt      *time.Time         `bson:"deletedAt" json:"-"`
 }
 
 type RoomList struct {
 	Data  []Room `json:"data"`
-	Count int64  `json:"count"`
+	Count int    `json:"count"`
 }

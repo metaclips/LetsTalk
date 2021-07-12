@@ -17,13 +17,13 @@ type Message struct {
 	Type      string             `bson:"type" json:"type,omitempty" validate:"required"`
 	Size      string             `bson:"size,omitempty" json:"size,omitempty"`
 	Hash      string             `bson:"hash,omitempty" json:"hash,omitempty"`
-	Time      time.Time          `bson:"time" json:"time,omitempty"`
-	DeletedAt *time.Time         `json:"deletedAt" bson:"deletedAt"`
+	CreatedAt time.Time          `bson:"createdAt" json:"createdAt"`
+	DeletedAt *time.Time         `bson:"deletedAt" json:"-"`
 }
 
 type MessagesList struct {
 	Data  []Message `json:"data"`
-	Count int64     `json:"count"`
+	Count int       `json:"count"`
 }
 
 type RequestMessage struct {

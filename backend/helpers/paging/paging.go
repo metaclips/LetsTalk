@@ -8,8 +8,8 @@ import (
 )
 
 type Paging struct {
-	Limit  int64  `json:"limit" bson:"limit" validate:"required,min=0,max=30"`
-	Skip   int64  `json:"skip" bson:"skip" validate:"required,min=0"`
+	Limit  int    `json:"limit" bson:"limit" validate:"required,min=0,max=30"`
+	Skip   int    `json:"skip" bson:"skip" validate:"required,min=0"`
 	Search string `json:"search" bson:"search"`
 }
 
@@ -26,7 +26,7 @@ func (p *Paging) PagedRequest(ctx context.Context, fields bson.M, store database
 		queries[key] = value
 	}
 
-	err := store.FindMany(ctx, queries, nil, bson.M{"_id": -1}, p.Limit, p.Skip, &data)
+	err := store.FindMany(ctx, queries, nil, bson.M{"_id": -1}, int64(p.Limit), int64(p.Skip), &data)
 	if err != nil {
 		return 0, err
 	}

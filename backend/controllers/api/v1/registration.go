@@ -94,6 +94,10 @@ func (r RegistrationController) RegisterUser(w http.ResponseWriter, req *http.Re
 		CreatedAt:  time.Now(),
 	}
 
+	if registration.MatricNumber != "" {
+		userData.MatricNumber = &registration.MatricNumber
+	}
+
 	if err := r.user.CreateUser(r.ctx, &userData); err != nil {
 		log.Errorln("error creating users:", err)
 		apihelpers.Respond(w, http.StatusInternalServerError, nil, "", api_errors.ErrGeneric.Error())

@@ -70,7 +70,7 @@ func (l LoginController) Login(w http.ResponseWriter, req *http.Request, _ httpr
 	}
 
 	apihelpers.Respond(w, http.StatusOK, v1resources.LoginResponse{
-		Encoded:  cookie,
+		Token:    cookie,
 		WSTicket: uuid,
 		UserID:   userData.ID,
 	}, "successful login", "")
@@ -80,6 +80,7 @@ func getStatusAndErr(err error) (status int, errVal string) {
 	if api_errors.IsMongoDup(err) {
 		return http.StatusBadRequest, "content already registered"
 	}
+
 	if err == mongo.ErrNoDocuments {
 		return http.StatusBadRequest, "content does not exist"
 	}
