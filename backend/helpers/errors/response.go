@@ -11,6 +11,7 @@ var (
 	ErrGeneric            = errors.New("something went wrong, please try again")
 	ErrRecordExists       = errors.New("record already exists")
 	ErrInvalidCredentials = errors.New("invalid credentials provided")
+	ErrInvalidDOB         = errors.New("invalid date of birth")
 )
 
 func IsMongoDup(err error) bool {

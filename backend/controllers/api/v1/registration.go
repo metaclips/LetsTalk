@@ -49,6 +49,14 @@ func (r RegistrationController) RegisterUser(w http.ResponseWriter, req *http.Re
 		return
 	}
 
+	var err error
+	registration.DOB, err = time.Parse(constants.DateOnly, registration.DOB.Format(constants.DateOnly))
+	if err != nil {
+		log.Errorln("error parsing users date of birth:", err)
+		apihelpers.Respond(w, http.StatusBadRequest, nil, "", api_errors.ErrInvalidDOB.Error())
+		return
+	}
+
 	// Ensure email address is a school email.
 	words := strings.Split(registration.Email, "@")
 	if len(words) < 2 {

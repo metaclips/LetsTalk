@@ -31,3 +31,8 @@ type RequestMessage struct {
 	Skip   int                `json:"skip"`
 	Limit  int                `json:"limit"`
 }
+
+type PredatorMessageScanning struct {
+	Author string `json:"author"`
+	Text   string `json:"text"`
+}

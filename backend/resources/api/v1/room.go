@@ -29,6 +29,12 @@ type JoinRoomRequestList struct {
 	Count int               `json:"count"`
 }
 
+type ExitRoomRequest struct {
+	JoinRoomID primitive.ObjectID `bson:"joinRoomID" json:"joinRoomID" validate:"required"`
+	UserID     primitive.ObjectID `bson:"userID" json:"userID" validate:"required"`
+	RoomID     primitive.ObjectID `bson:"roomID" json:"roomID" validate:"required"`
+}
+
 type GetJoinedRoomRequestList struct {
 	Data  []GetJoinedRoomRequest `json:"data"`
 	Count int                    `json:"count"`

@@ -23,8 +23,6 @@ func NewRoomRequest(db database.Database) RoomRequest {
 // Create new room instance. Note should be called right after storing
 // success message.
 func (b RoomRequest) NewRoomRequest(ctx context.Context, room *v1resources.JoinRoomRequest) error {
-	room.ID = primitive.NewObjectID()
-
 	if err := b.db.Save(ctx, room, nil); err != nil {
 		return err
 	}
@@ -165,4 +163,35 @@ func (b RoomRequest) RetrieveRejectedRoomRequest(ctx context.Context, userID pri
 		Data:  rooms,
 		Count: count,
 	}, nil
+}
+
+func (b RoomRequest) GetUsersRoom(ctx context.Context, users []v1resources.PrunedUser) ([]primitive.ObjectID, error) {
+	var rooms []v1resources.GetJoinedRoomRequest
+
+	filters := []bson.M{}
+	for _, user := range users {
+		filters = append(filters, bson.M{
+			"userToJoinID": user.ID,
+			"accepted":     true,
+			"exitedRoom":   false,
+			"rejectRoom":   false,
+		})
+	}
+
+	if err := b.db.FindMany(ctx, bson.M{"$or": filters}, nil, bson.M{"_id": -1}, 0, 0, &rooms); err != nil {
+		return nil, err
+	}
+
+	filtered := map[primitive.ObjectID]bool{}
+
+	for _, room := range rooms {
+		filtered[room.RoomID] = true
+	}
+
+	var filteredRoom []primitive.ObjectID
+	for key := range filtered {
+		filteredRoom = append(filteredRoom, key)
+	}
+
+	return filteredRoom, nil
 }

@@ -238,6 +238,86 @@ func TestGetRoomRequestOnLogin(t *testing.T) {
 	}
 }
 
+func TestPredatorScan(t *testing.T) {
+	roomID := primitive.NewObjectID()
+	predator := primitive.NewObjectID()
+	normalUser := primitive.NewObjectID()
+
+	minorsDOB, err := time.Parse(constants.DateOnly, "2006-01-02")
+	assert.NoError(t, err)
+
+	err = testHandler.usersModel.CreateUser(testHandler.ctx, &v1resources.UserData{
+		ID:         normalUser,
+		Email:      "anormaluser@students.unilag.edu.ng",
+		FirstName:  "Michael",
+		LastName:   "Uti",
+		Department: constants.ComputerEngineering,
+		Faculty:    constants.EngineeringFaculty,
+		Year:       5,
+		DOB:        minorsDOB,
+	})
+	assert.NoError(t, err)
+
+	err = testHandler.room.CreateNewRoom(testHandler.ctx, &v1resources.Room{
+		ID:             roomID,
+		CreateByUserID: predator,
+		RoomName:       "Just a random room to be predated on",
+		RoomIcon:       "",
+		CreatedAt:      time.Now(),
+	})
+	assert.NoError(t, err)
+
+	testHandler.roomRequest.NewRoomRequest(testHandler.ctx, &v1resources.JoinRoomRequest{
+		ID:           primitive.NewObjectID(),
+		UserID:       predator,
+		UserToJoinID: normalUser,
+		RoomID:       roomID,
+		RoomName:     "Just a random room to be predated on",
+		Accepted:     true,
+		CreatedAt:    time.Now(),
+	})
+
+	err = testHandler.messages.NewMessage(testHandler.ctx, &v1resources.Message{
+		ID:        primitive.NewObjectID(),
+		RoomID:    roomID,
+		UserID:    predator,
+		Message:   "How are you doing.",
+		Type:      constants.NewMessageMsgType,
+		CreatedAt: time.Now(),
+	})
+	assert.NoError(t, err)
+
+	err = testHandler.messages.NewMessage(testHandler.ctx, &v1resources.Message{
+		ID:        primitive.NewObjectID(),
+		RoomID:    roomID,
+		UserID:    normalUser,
+		Message:   "Hi, I am fine thank you.",
+		Type:      constants.NewMessageMsgType,
+		CreatedAt: time.Now(),
+	})
+	assert.NoError(t, err)
+
+	err = testHandler.messages.NewMessage(testHandler.ctx, &v1resources.Message{
+		ID:        primitive.NewObjectID(),
+		RoomID:    roomID,
+		UserID:    predator,
+		Message:   "I think I like you really.",
+		Type:      constants.NewMessageMsgType,
+		CreatedAt: time.Now(),
+	})
+	assert.NoError(t, err)
+
+	err = testHandler.messages.NewMessage(testHandler.ctx, &v1resources.Message{
+		ID:        primitive.NewObjectID(),
+		RoomID:    roomID,
+		UserID:    predator,
+		Message:   "Can we meet any time soon, please, don't tell your parents as they might not approve.",
+		Type:      constants.NewMessageMsgType,
+		CreatedAt: time.Now(),
+	})
+	assert.NoError(t, err)
+}
+
 func createWSConn(email string) (*websocket.Conn, error) {
 	user := v1resources.UserLogin{
 		Email:    email,

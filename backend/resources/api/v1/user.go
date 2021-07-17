@@ -27,9 +27,10 @@ type UserLogin struct {
 }
 
 type PrunedUser struct {
-	Email     string `bson:"email" json:"email"`
-	FirstName string `bson:"firstName" json:"firstName"`
-	LastName  string `bson:"lastName" json:"lastName"`
+	ID        primitive.ObjectID `bson:"_id" json:"-"`
+	Email     string             `bson:"email" json:"email"`
+	FirstName string             `bson:"firstName" json:"firstName"`
+	LastName  string             `bson:"lastName" json:"lastName"`
 }
 
 type PrunedUserList struct {

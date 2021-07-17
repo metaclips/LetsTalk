@@ -236,8 +236,8 @@ func (h WebsocketController) readPump(userID primitive.ObjectID, session v1resou
 		case constants.RequestUsersToJoinRoomMsgType:
 			h.joinRoomRequest(session.UserID, msg)
 
-		// case constants.ExitRoomMsgType:
-		// 	msg.handleExitRoom(user)
+		case constants.ExitRoomMsgType:
+			h.handleExitRoom(userID, msg)
 
 		case constants.SearchUserMsgType:
 			h.searchUsers(data.SearchText, session.UserID)
@@ -273,6 +273,56 @@ func (h WebsocketController) readPump(userID primitive.ObjectID, session v1resou
 			log.Println("Could not convert required type", data.MsgType)
 		}
 	}
+}
+
+func (h WebsocketController) handleExitRoom(user primitive.ObjectID, msg []byte) {
+	var request = v1resources.ExitRoomRequest{}
+	if err := unmarshalTo(msg, &request); err != nil {
+		// ToDo: Return error message.
+		return
+	}
+
+	if err := validation.ValidateInputs(request); err != nil {
+		// ToDo: Return error message.
+		return
+	}
+
+	if request.UserID != user {
+		// ToDo: Return error message.
+		return
+	}
+
+	// Ensure the person making the request is a member of the room.
+	isRequesterInRoom, err := h.roomRequest.IsRequesterAllowedInRoom(h.ctx, request.RoomID, user)
+	if err != nil {
+		// ToDo: Return error message.
+		return
+	}
+
+	if !isRequesterInRoom {
+		// ToDo: Return error message.
+		return
+	}
+
+	userLeaving, err := h.user.GetUserByID(h.ctx, request.UserID)
+	if err != nil {
+		if err != mongo.ErrNoDocuments {
+			log.Errorln("user tried inviting an unregistered user")
+		}
+
+		return
+	}
+
+	if err := h.roomRequest.ExitRoom(h.ctx, request.JoinRoomID); err != nil {
+		log.Errorln("error exiting room for user", err)
+		return
+	}
+
+	// Broadcast to user that is to join, that there's a request.
+	h.sendMessage(request, user)
+
+	// Send to the other user the room request.
+	h.saveMessageAndNotifyRoom(request.RoomID, request.UserID, fmt.Sprintf("%s %s (%s) has exited the room.", userLeaving.FirstName, userLeaving.LastName, userLeaving.Email))
 }
 
 func (h WebsocketController) searchUsers(key string, user primitive.ObjectID) {
@@ -446,11 +496,11 @@ func (h WebsocketController) joinRoomRequest(userID primitive.ObjectID, msg []by
 		return
 	}
 
-	// Broadcast to user to join, that there's a request.
+	// Broadcast to user that is to join, that there's a request.
 	h.sendMessage(request, request.UserToJoinID)
 
-	h.saveMessageAndNotifyRoom(request.RoomID, request.UserID, fmt.Sprintf("%s %s (%s) has requested %s %s (%s) to join the room.", requester.FirstName, requester.LastName, requester.Email, userToJoin.FirstName, userToJoin.LastName, userToJoin.Email))
 	// Send to the other user the room request.
+	h.saveMessageAndNotifyRoom(request.RoomID, request.UserToJoinID, fmt.Sprintf("%s %s (%s) has requested %s %s (%s) to join the room.", requester.FirstName, requester.LastName, requester.Email, userToJoin.FirstName, userToJoin.LastName, userToJoin.Email))
 }
 
 func (h WebsocketController) acceptRoomRequest(userID primitive.ObjectID, msg []byte) {
@@ -504,7 +554,7 @@ func (h WebsocketController) acceptRoomRequest(userID primitive.ObjectID, msg []
 		ID:       request.RoomID,
 	}, userID)
 
-	h.saveMessageAndNotifyRoom(request.RoomID, request.UserID, fmt.Sprintf("%s %s (%s) has has joined the room.", userToJoin.FirstName, userToJoin.LastName, userToJoin.Email))
+	h.saveMessageAndNotifyRoom(request.RoomID, request.UserToJoinID, fmt.Sprintf("%s %s (%s) has has joined the room.", userToJoin.FirstName, userToJoin.LastName, userToJoin.Email))
 }
 
 func (h WebsocketController) createNewRoom(userID primitive.ObjectID, msg []byte) {
