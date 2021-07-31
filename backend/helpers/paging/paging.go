@@ -36,5 +36,5 @@ func (p *Paging) PagedRequest(ctx context.Context, fields bson.M, store database
 		return 0, err
 	}
 
-	return int(count), nil
+	return count, nil
 }
