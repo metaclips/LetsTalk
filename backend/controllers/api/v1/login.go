@@ -33,7 +33,7 @@ func NewLoginController(user models.User, cookies cookies.Cookies) *LoginControl
 	}
 }
 
-func (l LoginController) Login(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+func (l *LoginController) Login(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
 	login := v1resources.UserLogin{}
 	decoder := json.NewDecoder(req.Body)
 	if err := decoder.Decode(&login); err != nil {
@@ -52,6 +52,11 @@ func (l LoginController) Login(w http.ResponseWriter, req *http.Request, _ httpr
 		status, err := api_errors.ErrorResponse(err)
 		log.Errorln("error decoding login data: ", err)
 		apihelpers.Respond(w, status, nil, "", err)
+		return
+	}
+
+	if !userData.Verified {
+		apihelpers.Respond(w, http.StatusUnauthorized, nil, "", "user not authorized")
 		return
 	}
 

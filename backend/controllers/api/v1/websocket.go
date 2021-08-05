@@ -30,9 +30,10 @@ type WebsocketController struct {
 	user        models.User
 	room        models.Room
 	roomRequest models.RoomRequest
-	ctx         context.Context
-	cancelFunc  context.CancelFunc
-	cookie      cookies.Cookies
+
+	ctx        context.Context
+	cancelFunc context.CancelFunc
+	cookie     cookies.Cookies
 
 	// Websocket upgrader.
 	upgrader websocket.Upgrader
@@ -52,7 +53,7 @@ func NewWebsocketController(hub *v1resources.Hub, message models.Messages, user 
 	}
 }
 
-func (h WebsocketController) Websocket(w http.ResponseWriter, req *http.Request, p httprouter.Params) {
+func (h *WebsocketController) Websocket(w http.ResponseWriter, req *http.Request, p httprouter.Params) {
 	ticket := p.ByName("ticket")
 	userID, err := primitive.ObjectIDFromHex(p.ByName("userID"))
 	if err != nil {
@@ -217,6 +218,7 @@ func (h WebsocketController) readPump(userID primitive.ObjectID, session v1resou
 		err = json.Unmarshal(msg, &data)
 		if err != nil {
 			log.Println("could not unmarshal json")
+			continue
 		}
 
 		switch data.MsgType {
@@ -243,7 +245,7 @@ func (h WebsocketController) readPump(userID primitive.ObjectID, session v1resou
 			h.searchUsers(data.SearchText, session.UserID)
 
 		// case constants.NewFileUploadMsgType:
-		// 	msg.handleNewFileUpload()
+		// 	h.newFileUpload(userID, msg)
 
 		// case constants.UploadFileChunkMsgType:
 		// 	msg.handleUploadFileChunk()
@@ -274,6 +276,44 @@ func (h WebsocketController) readPump(userID primitive.ObjectID, session v1resou
 		}
 	}
 }
+
+// func (h WebsocketController) newFileUpload(user primitive.ObjectID, msg []byte) {
+// 	var fileData = v1resources.FileDetail{}
+// 	if err := unmarshalTo(msg, &fileData); err != nil {
+// 		// ToDo: Return error message.
+// 		return
+// 	}
+
+// 	if err := validation.ValidateInputs(fileData); err != nil {
+// 		// ToDo: Return error message.
+// 		return
+// 	}
+
+// 	if fileData.UserID != user {
+// 		// ToDo: Return error message.
+// 		return
+// 	}
+
+// 	// This tracks file status.
+// 	if err := h.file.CreateNewFile(h.ctx, &fileData); err != nil {
+// 		// ToDo: Return error message.
+// 		return
+// 	}
+
+// 	data := struct {
+// 		MsgType  string `json:"msgType"`
+// 		FileName string `json:"fileName,omitempty"`
+// 		FileHash string `json:"fileHash"`
+// 		Chunk    int    `json:"nextChunk"`
+// 	}{
+// 		constants.UploadFileChunkMsgType,
+// 		fileData.Name,
+// 		fileData.Hash,
+// 		1,
+// 	}
+
+// 	h.sendMessage(data, user)
+// }
 
 func (h WebsocketController) handleExitRoom(user primitive.ObjectID, msg []byte) {
 	var request = v1resources.ExitRoomRequest{}
@@ -379,7 +419,7 @@ func (h WebsocketController) newMessage(userID primitive.ObjectID, msg []byte) {
 		return
 	}
 
-	if message.Type == constants.FileTypeFile && (message.Size == "" || message.Hash == "") {
+	if message.Type == constants.FileTypeFile && (message.SizeInKB == nil || message.Hash == "") {
 		// ToDo: Return error message.
 		return
 	}

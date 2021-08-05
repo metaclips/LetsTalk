@@ -15,8 +15,8 @@ type Message struct {
 	UserID    primitive.ObjectID `bson:"userID" json:"userID,omitempty" validate:"required"`
 	Message   string             `bson:"message" json:"message,omitempty" validate:"required"`
 	Type      string             `bson:"type" json:"type,omitempty" validate:"required"`
-	Size      string             `bson:"size,omitempty" json:"size,omitempty"`
 	Hash      string             `bson:"hash,omitempty" json:"hash,omitempty"`
+	SizeInKB  *int               `bson:"sizeInKB,omitempty" json:"sizeInKB,omitempty"`
 	CreatedAt time.Time          `bson:"createdAt" json:"createdAt"`
 	DeletedAt *time.Time         `bson:"deletedAt" json:"-"`
 }

@@ -17,6 +17,7 @@
         "https://127.0.0.1:8080"
     ],
     "DbHost": "mongodb://localhost:27017/test",
+    "Email": "utimichael9@gmail.com",
     "DbName": "LetsTalkDB",
     "DropboxToken": "",
     "EnableClassSessionRecord": true,

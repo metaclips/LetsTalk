@@ -16,6 +16,7 @@ import (
 	apihelpers "github.com/metaclips/LetsTalk/backend/apihelper"
 	v1controller "github.com/metaclips/LetsTalk/backend/controllers/api/v1"
 	"github.com/metaclips/LetsTalk/backend/helpers/constants"
+	"github.com/metaclips/LetsTalk/backend/integration/mocker"
 	appcontext "github.com/metaclips/LetsTalk/backend/middlewares/context"
 	"github.com/metaclips/LetsTalk/backend/middlewares/cookies"
 	"github.com/metaclips/LetsTalk/backend/middlewares/database"
@@ -37,6 +38,8 @@ type handler struct {
 	roomRequest models.RoomRequest
 	room        models.Room
 	messages    models.Messages
+
+	mocker *mocker.Mocker
 
 	server *httptest.Server
 	client *http.Client
@@ -98,9 +101,11 @@ func integration() {
 		},
 	}
 
+	mocker := &mocker.Mocker{}
+
 	homeController := v1controller.NewHomepageController(messagesModel, usersModel, roomModel, roomRequestModel, usersCookie)
 	loginController := v1controller.NewLoginController(usersModel, usersCookie)
-	usersController := v1controller.NewRegistrationController(usersModel)
+	usersController := v1controller.NewRegistrationController(usersModel, mocker)
 	wsController := v1controller.NewWebsocketController(&wsHub, messagesModel, usersModel, roomModel, roomRequestModel, usersCookie)
 
 	go wsController.Run()
@@ -109,6 +114,8 @@ func integration() {
 
 	testHandler.server = httptest.NewServer(router)
 	testHandler.client = testHandler.server.Client()
+
+	testHandler.mocker = mocker
 
 	panicOnError(err)
 }
@@ -129,6 +136,7 @@ func (c *handler) seedOneUser(email string) (*v1resources.UserData, error) {
 		Department: constants.ComputerEngineering,
 		Faculty:    constants.EngineeringFaculty,
 		IsStaff:    false,
+		Verified:   true,
 		Year:       2015,
 		CreatedAt:  time.Now(),
 	}

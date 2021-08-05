@@ -33,7 +33,7 @@ func NewHomepageController(message models.Messages, user models.User, room model
 	}
 }
 
-func (h HomepageController) HomePage(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func (h *HomepageController) HomePage(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ID, err := h.cookie.CheckCookie(h.ctx, r, constants.UserCookieName)
 	if err != nil {
 		log.Errorln("error checking users cookies: ", err)

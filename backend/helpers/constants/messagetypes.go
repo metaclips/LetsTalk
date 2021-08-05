@@ -13,4 +13,6 @@ const (
 	SentRoomRequestMsgType        = "SentRoomRequest"
 	JoinRoomMsgType               = "JoinRoom"
 	OnlineStatusMsgType           = "OnlineStatus"
+
+	UploadFileChunkMsgType = "UploadFileChunk"
 )

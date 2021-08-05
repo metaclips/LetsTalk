@@ -20,6 +20,8 @@ type configuration struct {
 
 	CorsAllowedOrigins []string
 
+	Email                    string
+	EmailPassword            string
 	DbHost                   string
 	DbName                   string
 	DropboxToken             string

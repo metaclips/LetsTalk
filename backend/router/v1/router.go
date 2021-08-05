@@ -57,9 +57,11 @@ func StartV1() {
 		},
 	}
 
+	mailer := v1resources.GoogleMailer{}
+
 	homeController := v1controller.NewHomepageController(messageModel, usersModel, roomModel, roomRequestModel, usersCookie)
 	loginController := v1controller.NewLoginController(usersModel, usersCookie)
-	usersController := v1controller.NewRegistrationController(usersModel)
+	usersController := v1controller.NewRegistrationController(usersModel, &mailer)
 	wsController := v1controller.NewWebsocketController(&wsHub, messageModel, usersModel, roomModel, roomRequestModel, usersCookie)
 
 	go wsController.Run()
@@ -101,6 +103,7 @@ func NewRouter(home *v1controller.HomepageController, login *v1controller.LoginC
 
 	router.POST("/v1/login", login.Login)
 	router.POST("/v1/register", registration.RegisterUser)
+	router.POST("/v1/verify/:email/:uuid", registration.VerifyUser)
 	router.GET("/v1/home", home.HomePage)
 	router.GET("/v1/ws/:userID/:ticket", ws.Websocket)
 
