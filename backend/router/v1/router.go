@@ -13,6 +13,7 @@ import (
 	appcontext "github.com/metaclips/LetsTalk/backend/middlewares/context"
 	"github.com/metaclips/LetsTalk/backend/middlewares/cookies"
 	"github.com/metaclips/LetsTalk/backend/middlewares/database"
+	appWebsocket "github.com/metaclips/LetsTalk/backend/middlewares/websocket"
 	"github.com/metaclips/LetsTalk/backend/models"
 	v1resources "github.com/metaclips/LetsTalk/backend/resources/api/v1"
 	log "github.com/sirupsen/logrus"
@@ -58,13 +59,13 @@ func StartV1() {
 	}
 
 	mailer := v1resources.GoogleMailer{}
+	apoWebsocket := appWebsocket.NewWebsocket(&wsHub, roomRequestModel, messageModel, usersModel, roomModel)
+	go apoWebsocket.Run()
 
 	homeController := v1controller.NewHomepageController(messageModel, usersModel, roomModel, roomRequestModel, usersCookie)
 	loginController := v1controller.NewLoginController(usersModel, usersCookie)
 	usersController := v1controller.NewRegistrationController(usersModel, &mailer)
-	wsController := v1controller.NewWebsocketController(&wsHub, messageModel, usersModel, roomModel, roomRequestModel, usersCookie)
-
-	go wsController.Run()
+	wsController := v1controller.NewWebsocketController(usersModel, apoWebsocket)
 
 	router := NewRouter(homeController, loginController, usersController, wsController)
 	srv := http.Server{}

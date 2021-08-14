@@ -20,6 +20,7 @@ import (
 	appcontext "github.com/metaclips/LetsTalk/backend/middlewares/context"
 	"github.com/metaclips/LetsTalk/backend/middlewares/cookies"
 	"github.com/metaclips/LetsTalk/backend/middlewares/database"
+	appWebsocket "github.com/metaclips/LetsTalk/backend/middlewares/websocket"
 	"github.com/metaclips/LetsTalk/backend/models"
 	v1resources "github.com/metaclips/LetsTalk/backend/resources/api/v1"
 	v1router "github.com/metaclips/LetsTalk/backend/router/v1"
@@ -102,13 +103,13 @@ func integration() {
 	}
 
 	mocker := &mocker.Mocker{}
+	apoWebsocket := appWebsocket.NewWebsocket(&wsHub, roomRequestModel, messagesModel, usersModel, roomModel)
+	go apoWebsocket.Run()
 
 	homeController := v1controller.NewHomepageController(messagesModel, usersModel, roomModel, roomRequestModel, usersCookie)
 	loginController := v1controller.NewLoginController(usersModel, usersCookie)
 	usersController := v1controller.NewRegistrationController(usersModel, mocker)
-	wsController := v1controller.NewWebsocketController(&wsHub, messagesModel, usersModel, roomModel, roomRequestModel, usersCookie)
-
-	go wsController.Run()
+	wsController := v1controller.NewWebsocketController(usersModel, apoWebsocket)
 
 	router := v1router.NewRouter(homeController, loginController, usersController, wsController)
 
