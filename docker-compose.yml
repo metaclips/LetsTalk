@@ -11,7 +11,8 @@ services:
         ports:
             - '8080:8080'
         volumes:
-            - './letstalk:/opt/letstalk:cached'
+            - './:/opt/letstalk:cached'
+
     # MongoDB
     mongo:
         image: 'mongo'
