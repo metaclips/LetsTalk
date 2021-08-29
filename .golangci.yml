@@ -1,4 +1,0 @@
-# golangci-lint configuration file
-linters:
-   enable:
-     - revive
