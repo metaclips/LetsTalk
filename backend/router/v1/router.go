@@ -28,7 +28,7 @@ func StartV1() {
 
 	client, err := mongo.Connect(ctx, clientOptions)
 	if err != nil {
-		log.Fatalln("error connecting mongo instance:", err)
+		log.Fatalln("error connecting mongo instance:", err, apihelper.Config.DbHost)
 	}
 
 	db := client.Database(apihelper.Config.DbName)
