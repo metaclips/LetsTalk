@@ -22,7 +22,7 @@ import (
 )
 
 func StartV1() {
-	err := apihelper.LoadConfiguration("../../config.json")
+	err := apihelper.LoadConfiguration("config.json")
 	if err != nil {
 		log.Fatalln("error loading config:", err)
 	}
@@ -33,7 +33,7 @@ func StartV1() {
 
 	client, err := mongo.Connect(ctx, clientOptions)
 	if err != nil {
-		log.Fatalln("error connecting mongo instance:", err, apihelper.Config.DbHost)
+		log.Fatalln("error connecting mongo URL instance:", err, apihelper.Config.DbHost)
 	}
 
 	db := client.Database(apihelper.Config.DbName)
