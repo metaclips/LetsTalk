@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"sync"
 	"testing"
 	"time"
 
@@ -20,6 +19,7 @@ import (
 	appcontext "github.com/metaclips/LetsTalk/backend/middlewares/context"
 	"github.com/metaclips/LetsTalk/backend/middlewares/cookies"
 	"github.com/metaclips/LetsTalk/backend/middlewares/database"
+	"github.com/metaclips/LetsTalk/backend/middlewares/peerconnection"
 	appWebsocket "github.com/metaclips/LetsTalk/backend/middlewares/websocket"
 	"github.com/metaclips/LetsTalk/backend/models"
 	v1resources "github.com/metaclips/LetsTalk/backend/resources/api/v1"
@@ -66,6 +66,7 @@ func integration() {
 	panicOnError(err)
 
 	testHandler.db = client.Database(apihelpers.Config.DbName)
+	testHandler.db.Drop(ctx)
 	testHandler.cancelfunc = cancel
 	testHandler.ctx = ctx
 
@@ -92,19 +93,10 @@ func integration() {
 
 	usersCookie := cookies.NewSecureCookie(usersCollection)
 
-	wsHub := v1resources.Hub{
-		Broadcast:  make(chan v1resources.WSMessage),
-		Register:   make(chan v1resources.Subscription),
-		UnRegister: make(chan v1resources.Subscription),
-		Users: v1resources.WSUsers{
-			RoomUsers: make(map[primitive.ObjectID]*v1resources.Connection),
-			Mutex:     &sync.RWMutex{},
-		},
-	}
-
+	pc := peerconnection.NewPionPeerConnection()
 	mocker := &mocker.Mocker{}
-	apoWebsocket := appWebsocket.NewWebsocket(&wsHub, roomRequestModel, messagesModel, usersModel, roomModel)
-	go apoWebsocket.Run()
+
+	apoWebsocket := appWebsocket.NewGorillaWebsocket(pc, roomRequestModel, messagesModel, usersModel, roomModel)
 
 	homeController := v1controller.NewHomepageController(messagesModel, usersModel, roomModel, roomRequestModel, usersCookie)
 	loginController := v1controller.NewLoginController(usersModel, usersCookie)

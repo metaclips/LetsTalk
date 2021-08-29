@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -12,6 +13,7 @@ import (
 	"github.com/metaclips/LetsTalk/backend/helpers/paging"
 	"github.com/metaclips/LetsTalk/backend/helpers/validation"
 	appContext "github.com/metaclips/LetsTalk/backend/middlewares/context"
+	"github.com/metaclips/LetsTalk/backend/middlewares/peerconnection"
 	"github.com/metaclips/LetsTalk/backend/models"
 	v1resources "github.com/metaclips/LetsTalk/backend/resources/api/v1"
 	log "github.com/sirupsen/logrus"
@@ -19,9 +21,10 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-type Websocket struct {
+type gorrilaWebsocket struct {
 	// Websocket Hub.
-	hub *v1resources.Hub
+	hub            *hub
+	peerconnection peerconnection.PeerInterface
 
 	ctx        context.Context
 	cancelFunc context.CancelFunc
@@ -32,74 +35,91 @@ type Websocket struct {
 	room        models.Room
 }
 
-func NewWebsocket(hub *v1resources.Hub, roomRequest models.RoomRequest, messages models.Messages, user models.User, room models.Room) *Websocket {
+var _ WSInterface = &gorrilaWebsocket{}
+
+func NewGorillaWebsocket(peerconnection peerconnection.PeerInterface, roomRequest models.RoomRequest, messages models.Messages, user models.User, room models.Room) WSInterface {
+	hub := &hub{
+		broadcast:  make(chan wsMessage),
+		register:   make(chan Subscription),
+		unRegister: make(chan Subscription),
+		users: wsUsers{
+			roomUsers: make(map[primitive.ObjectID]*Connection),
+			mutex:     &sync.RWMutex{},
+		},
+	}
+
 	ctx, cancelFunc := appContext.CreateChildCancelContext()
-	return &Websocket{
+	ws := &gorrilaWebsocket{
 		hub,
+		peerconnection,
 		ctx, cancelFunc,
 		roomRequest,
 		messages,
 		user,
 		room,
 	}
+
+	go ws.run()
+
+	return ws
 }
 
-func (h *Websocket) RegisterToHub(sub v1resources.Subscription) {
-	h.hub.Register <- sub
+func (h *gorrilaWebsocket) RegisterToHub(sub Subscription) {
+	h.hub.register <- sub
 }
 
-func (h *Websocket) Run() {
+func (h *gorrilaWebsocket) run() {
 	for {
 		select {
-		case s := <-h.hub.Register:
-			h.hub.Users.Mutex.Lock()
+		case s := <-h.hub.register:
+			h.hub.users.mutex.Lock()
 
 			// Close recent connection if exists.
 			// There's only one supported websocket connection on the hub.
-			if conn, exists := h.hub.Users.RoomUsers[s.UserID]; exists {
+			if conn, exists := h.hub.users.roomUsers[s.UserID]; exists {
 				if err := conn.WS.Close(); err != nil {
 					log.Errorln("could not close websocket channel:", err)
 				}
 			}
 
-			h.hub.Users.RoomUsers[s.UserID] = s.Conn
+			h.hub.users.roomUsers[s.UserID] = s.Conn
 
 			log.Infoln(s.UserID, "registered to hub.")
 			go h.broadcastOnlineStatusToAllUserRoom(s.UserID, true)
 
-			h.hub.Users.Mutex.Unlock()
+			h.hub.users.mutex.Unlock()
 
-		case s := <-h.hub.UnRegister:
-			h.hub.Users.Mutex.Lock()
-			if _, exists := h.hub.Users.RoomUsers[s.UserID]; exists {
-				delete(h.hub.Users.RoomUsers, s.UserID)
+		case s := <-h.hub.unRegister:
+			h.hub.users.mutex.Lock()
+			if _, exists := h.hub.users.roomUsers[s.UserID]; exists {
+				delete(h.hub.users.roomUsers, s.UserID)
 				close(s.Conn.Send)
 				go h.broadcastOnlineStatusToAllUserRoom(s.UserID, false)
 				log.Infoln(s.UserID, "offline")
 			}
-			h.hub.Users.Mutex.Unlock()
+			h.hub.users.mutex.Unlock()
 
-		case m := <-h.hub.Broadcast:
-			h.hub.Users.Mutex.RLock()
-			connection, exist := h.hub.Users.RoomUsers[m.User]
+		case m := <-h.hub.broadcast:
+			h.hub.users.mutex.RLock()
+			connection, exist := h.hub.users.roomUsers[m.user]
 			if !exist {
-				log.Errorln("ws conn closed and message broadcasted:", m.User)
+				log.Errorln("ws conn closed and message broadcasted:", m.user)
 				continue
 			}
 
 			select {
-			case connection.Send <- m.Data:
+			case connection.Send <- m.data:
 			default:
 				connection.WS.Close()
-				delete(h.hub.Users.RoomUsers, m.User)
-				go h.broadcastOnlineStatusToAllUserRoom(m.User, false)
+				delete(h.hub.users.roomUsers, m.user)
+				go h.broadcastOnlineStatusToAllUserRoom(m.user, false)
 			}
-			h.hub.Users.Mutex.RUnlock()
+			h.hub.users.mutex.RUnlock()
 		}
 	}
 }
 
-func (h *Websocket) WritePump(conn *v1resources.Connection) {
+func (h *gorrilaWebsocket) WritePump(conn *Connection) {
 	ticker := time.NewTicker(constants.PingPeriod)
 	defer func() {
 		ticker.Stop()
@@ -120,15 +140,15 @@ func (h *Websocket) WritePump(conn *v1resources.Connection) {
 			}
 
 		case <-ticker.C:
-			if err := h.write(websocket.PingMessage, []byte{}, conn.WS); err != nil {
-				return
-			}
+			// if err := h.write(websocket.PingMessage, []byte{}, conn.WS); err != nil {
+			// 	return
+			// }
 		}
 	}
 }
 
 // write writes a message with the given message type and payload.
-func (h *Websocket) write(mt int, payload []byte, ws *websocket.Conn) error {
+func (h *gorrilaWebsocket) write(mt int, payload []byte, ws *websocket.Conn) error {
 	if err := ws.SetWriteDeadline(time.Now().Add(constants.WriteWait)); err != nil {
 		return err
 	}
@@ -137,11 +157,11 @@ func (h *Websocket) write(mt int, payload []byte, ws *websocket.Conn) error {
 }
 
 // ReadPump pumps messages from the websocket connection to the hub.
-func (h *Websocket) ReadPump(userID primitive.ObjectID, session v1resources.Subscription) {
+func (h *gorrilaWebsocket) ReadPump(userID primitive.ObjectID, session Subscription) {
 	c := session.Conn
 
 	defer func() {
-		h.hub.UnRegister <- session
+		h.hub.unRegister <- session
 		c.WS.Close()
 	}()
 
@@ -212,11 +232,11 @@ func (h *Websocket) ReadPump(userID primitive.ObjectID, session v1resources.Subs
 		// case constants.DownloadFileChunkMsgType:
 		// 	msg.handleFileDownload(user)
 
-		// case constants.StartClassSession:
-		// 	classSessions.startClassSession(msg, user)
+		case constants.StartClassSession:
+			h.peerconnection.NewPublisherPeerConnection(userID, msg, h.onPC)
 
-		// case constants.JoinClassSession:
-		// 	classSessions.joinClassSession(msg, user)
+		case constants.JoinClassSession:
+			h.peerconnection.NewSubscriberPeerConnection(userID, msg, h.onPC)
 
 		// case constants.EndClassSession:
 		// 	classSessions.endClassSession(user)
@@ -228,6 +248,25 @@ func (h *Websocket) ReadPump(userID primitive.ObjectID, session v1resources.Subs
 			log.Println("Could not convert required type", data.MsgType)
 		}
 	}
+}
+
+func (h *gorrilaWebsocket) onPC(data interface{}, roomID *primitive.ObjectID, userID *primitive.ObjectID) error {
+	if roomID != nil {
+		msg, err := json.Marshal(data)
+		if err != nil {
+			return err
+		}
+
+		h.newMessage(*userID, msg)
+		return nil
+	}
+
+	if userID != nil {
+		h.sendMessage(data, *userID)
+		return nil
+	}
+
+	return nil
 }
 
 // func (h Websocket) newFileUpload(user primitive.ObjectID, msg []byte) {
@@ -268,7 +307,7 @@ func (h *Websocket) ReadPump(userID primitive.ObjectID, session v1resources.Subs
 // 	h.sendMessage(data, user)
 // }
 
-func (h *Websocket) handleExitRoom(user primitive.ObjectID, msg []byte) {
+func (h *gorrilaWebsocket) handleExitRoom(user primitive.ObjectID, msg []byte) {
 	var request = v1resources.ExitRoomRequest{}
 	if err := unmarshalTo(msg, &request); err != nil {
 		// ToDo: Return error message.
@@ -318,7 +357,7 @@ func (h *Websocket) handleExitRoom(user primitive.ObjectID, msg []byte) {
 	h.saveMessageAndNotifyRoom(request.RoomID, request.UserID, fmt.Sprintf("%s %s (%s) has exited the room.", userLeaving.FirstName, userLeaving.LastName, userLeaving.Email))
 }
 
-func (h *Websocket) searchUsers(key string, user primitive.ObjectID) {
+func (h *gorrilaWebsocket) searchUsers(key string, user primitive.ObjectID) {
 	if key == "" {
 		return
 	}
@@ -341,7 +380,7 @@ func (h *Websocket) searchUsers(key string, user primitive.ObjectID) {
 	}
 }
 
-func (h *Websocket) newMessage(userID primitive.ObjectID, msg []byte) {
+func (h *gorrilaWebsocket) newMessage(userID primitive.ObjectID, msg []byte) {
 	var message v1resources.Message
 
 	if err := unmarshalTo(msg, &message); err != nil {
@@ -360,7 +399,7 @@ func (h *Websocket) newMessage(userID primitive.ObjectID, msg []byte) {
 		return
 	}
 
-	if _, ok := maps.FileTypes[message.Type]; !ok {
+	if _, ok := maps.MessageTypes[message.Type]; !ok {
 		// ToDo: Return error message.
 		return
 	}
@@ -372,10 +411,10 @@ func (h *Websocket) newMessage(userID primitive.ObjectID, msg []byte) {
 		return
 	}
 
-	if message.Type == constants.FileTypeFile && (message.SizeInKB == nil || message.Hash == "") {
-		// ToDo: Return error message.
-		return
-	}
+	// if message.Type == constants.MessageTypeFile && (message.SizeInKB == nil || message.Hash == "") {
+	// 	// ToDo: Return error message.
+	// 	return
+	// }
 
 	message.ID = primitive.NewObjectID()
 	message.CreatedAt = time.Now()
@@ -396,7 +435,7 @@ func (h *Websocket) newMessage(userID primitive.ObjectID, msg []byte) {
 	}
 }
 
-func (h *Websocket) requestMessages(userID primitive.ObjectID, msg []byte) {
+func (h *gorrilaWebsocket) requestMessages(userID primitive.ObjectID, msg []byte) {
 	request := v1resources.RequestMessage{}
 	if err := unmarshalTo(msg, &request); err != nil {
 		// ToDo: Return error message.
@@ -428,7 +467,7 @@ func (h *Websocket) requestMessages(userID primitive.ObjectID, msg []byte) {
 	}
 }
 
-func (h *Websocket) joinRoomRequest(userID primitive.ObjectID, msg []byte) {
+func (h *gorrilaWebsocket) joinRoomRequest(userID primitive.ObjectID, msg []byte) {
 	var request = v1resources.JoinRoomRequest{}
 	if err := unmarshalTo(msg, &request); err != nil {
 		// ToDo: Return error message.
@@ -496,7 +535,7 @@ func (h *Websocket) joinRoomRequest(userID primitive.ObjectID, msg []byte) {
 	h.saveMessageAndNotifyRoom(request.RoomID, request.UserToJoinID, fmt.Sprintf("%s %s (%s) has requested %s %s (%s) to join the room.", requester.FirstName, requester.LastName, requester.Email, userToJoin.FirstName, userToJoin.LastName, userToJoin.Email))
 }
 
-func (h *Websocket) acceptRoomRequest(userID primitive.ObjectID, msg []byte) {
+func (h *gorrilaWebsocket) acceptRoomRequest(userID primitive.ObjectID, msg []byte) {
 	var request = v1resources.JoinRoomRequest{}
 	if err := unmarshalTo(msg, &request); err != nil {
 		// ToDo: Return error message.
@@ -550,7 +589,7 @@ func (h *Websocket) acceptRoomRequest(userID primitive.ObjectID, msg []byte) {
 	h.saveMessageAndNotifyRoom(request.RoomID, request.UserToJoinID, fmt.Sprintf("%s %s (%s) has has joined the room.", userToJoin.FirstName, userToJoin.LastName, userToJoin.Email))
 }
 
-func (h *Websocket) createNewRoom(userID primitive.ObjectID, msg []byte) {
+func (h *gorrilaWebsocket) createNewRoom(userID primitive.ObjectID, msg []byte) {
 	var room v1resources.Room
 	if err := unmarshalTo(msg, &room); err != nil {
 		// ToDo: Return error message.
@@ -605,7 +644,7 @@ func (h *Websocket) createNewRoom(userID primitive.ObjectID, msg []byte) {
 	h.saveMessageAndNotifyRoom(room.ID, userID, fmt.Sprintf("%s %s (%s) has has joined the room.", userToJoin.FirstName, userToJoin.LastName, userToJoin.Email))
 }
 
-func (h *Websocket) broadcastOnlineStatusToAllUserRoom(userID primitive.ObjectID, isOnline bool) {
+func (h *gorrilaWebsocket) broadcastOnlineStatusToAllUserRoom(userID primitive.ObjectID, isOnline bool) {
 	associates, err := h.roomRequest.GetUserAssociates(h.ctx, userID)
 	if err != nil {
 		log.Errorln("error getting users associates:", err)
@@ -624,7 +663,7 @@ func (h *Websocket) broadcastOnlineStatusToAllUserRoom(userID primitive.ObjectID
 	}
 }
 
-func (h *Websocket) saveMessageAndNotifyRoom(roomID, userID primitive.ObjectID, message string) {
+func (h *gorrilaWebsocket) saveMessageAndNotifyRoom(roomID, userID primitive.ObjectID, message string) {
 	data := v1resources.Message{
 		ID:        primitive.NewObjectID(),
 		RoomID:    roomID,
@@ -647,7 +686,7 @@ func (h *Websocket) saveMessageAndNotifyRoom(roomID, userID primitive.ObjectID, 
 	}
 }
 
-func (h *Websocket) broadcastToAllRoomUsers(roomID primitive.ObjectID, data interface{}) error {
+func (h *gorrilaWebsocket) broadcastToAllRoomUsers(roomID primitive.ObjectID, data interface{}) error {
 	joinedUsers, err := h.roomRequest.GetUsersInRoom(h.ctx, roomID)
 	if err != nil {
 		return err
@@ -662,14 +701,14 @@ func (h *Websocket) broadcastToAllRoomUsers(roomID primitive.ObjectID, data inte
 	return nil
 }
 
-func (h *Websocket) sendMessage(data interface{}, user primitive.ObjectID) error {
+func (h *gorrilaWebsocket) sendMessage(data interface{}, user primitive.ObjectID) error {
 	val, err := json.Marshal(data)
 	if err != nil {
 		return err
 	}
 
-	m := v1resources.WSMessage{Data: val, User: user}
-	h.hub.Broadcast <- m
+	m := wsMessage{data: val, user: user}
+	h.hub.broadcast <- m
 
 	return nil
 }

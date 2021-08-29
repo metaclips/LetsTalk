@@ -4,7 +4,6 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"sync"
 
 	"github.com/julienschmidt/httprouter"
 	apihelper "github.com/metaclips/LetsTalk/backend/apihelper"
@@ -13,11 +12,11 @@ import (
 	appcontext "github.com/metaclips/LetsTalk/backend/middlewares/context"
 	"github.com/metaclips/LetsTalk/backend/middlewares/cookies"
 	"github.com/metaclips/LetsTalk/backend/middlewares/database"
+	"github.com/metaclips/LetsTalk/backend/middlewares/peerconnection"
 	appWebsocket "github.com/metaclips/LetsTalk/backend/middlewares/websocket"
 	"github.com/metaclips/LetsTalk/backend/models"
 	v1resources "github.com/metaclips/LetsTalk/backend/resources/api/v1"
 	log "github.com/sirupsen/logrus"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -48,19 +47,10 @@ func StartV1() {
 
 	usersCookie := cookies.NewSecureCookie(usersCollection)
 
-	wsHub := v1resources.Hub{
-		Broadcast:  make(chan v1resources.WSMessage),
-		Register:   make(chan v1resources.Subscription),
-		UnRegister: make(chan v1resources.Subscription),
-		Users: v1resources.WSUsers{
-			RoomUsers: make(map[primitive.ObjectID]*v1resources.Connection),
-			Mutex:     &sync.RWMutex{},
-		},
-	}
-
+	pc := peerconnection.NewPionPeerConnection()
 	mailer := v1resources.GoogleMailer{}
-	apoWebsocket := appWebsocket.NewWebsocket(&wsHub, roomRequestModel, messageModel, usersModel, roomModel)
-	go apoWebsocket.Run()
+
+	apoWebsocket := appWebsocket.NewGorillaWebsocket(pc, roomRequestModel, messageModel, usersModel, roomModel)
 
 	homeController := v1controller.NewHomepageController(messageModel, usersModel, roomModel, roomRequestModel, usersCookie)
 	loginController := v1controller.NewLoginController(usersModel, usersCookie)

@@ -6,6 +6,8 @@ const (
 	NewMessageMsgType             = "NewMessage"
 	RequestMessages               = "RequestMessages"
 	SearchUserMsgType             = "SearchUser"
+	StartClassSession             = "StartClassSession"
+	JoinClassSession              = "JoinClassSession"
 	WebsocketOpenMsgType          = "WebsocketOpen"
 	CreateRoomMsgType             = "CreateRoom"
 	ExitRoomMsgType               = "ExitRoom"
@@ -13,6 +15,7 @@ const (
 	SentRoomRequestMsgType        = "SentRoomRequest"
 	JoinRoomMsgType               = "JoinRoom"
 	OnlineStatusMsgType           = "OnlineStatus"
+	OnICECandidate                = "OnICECandidate"
 
 	UploadFileChunkMsgType = "UploadFileChunk"
 )

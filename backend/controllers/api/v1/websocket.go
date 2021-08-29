@@ -12,7 +12,6 @@ import (
 	appContext "github.com/metaclips/LetsTalk/backend/middlewares/context"
 	appWebsocket "github.com/metaclips/LetsTalk/backend/middlewares/websocket"
 	"github.com/metaclips/LetsTalk/backend/models"
-	v1resources "github.com/metaclips/LetsTalk/backend/resources/api/v1"
 	log "github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
@@ -20,7 +19,7 @@ import (
 type WebsocketController struct {
 	user models.User
 
-	apiWebsocket *appWebsocket.Websocket
+	apiWebsocket appWebsocket.WSInterface
 
 	ctx        context.Context
 	cancelFunc context.CancelFunc
@@ -29,7 +28,7 @@ type WebsocketController struct {
 	upgrader websocket.Upgrader
 }
 
-func NewWebsocketController(user models.User, apiWebsocket *appWebsocket.Websocket) *WebsocketController {
+func NewWebsocketController(user models.User, apiWebsocket appWebsocket.WSInterface) *WebsocketController {
 	ctx, cancelFunc := appContext.CreateChildCancelContext()
 
 	return &WebsocketController{
@@ -68,8 +67,8 @@ func (h *WebsocketController) Websocket(w http.ResponseWriter, req *http.Request
 		return
 	}
 
-	subscribstion := v1resources.Subscription{
-		Conn: &v1resources.Connection{
+	subscribstion := appWebsocket.Subscription{
+		Conn: &appWebsocket.Connection{
 			WS:   conn,
 			Send: make(chan []byte, 256),
 		},

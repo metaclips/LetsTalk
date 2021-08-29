@@ -1,4 +1,4 @@
-package v1resources
+package websocket
 
 import (
 	"sync"
@@ -7,15 +7,21 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-type Hub struct {
+type WSInterface interface {
+	WritePump(conn *Connection)
+	ReadPump(userID primitive.ObjectID, session Subscription)
+	RegisterToHub(sub Subscription)
+}
+
+type hub struct {
 	// Registered connections.
-	Users WSUsers
+	users wsUsers
 	// Inbound messages from the connections.
-	Broadcast chan WSMessage
+	broadcast chan wsMessage
 	// Register requests from the connections.
-	Register chan Subscription
+	register chan Subscription
 	// Unregister requests from connections.
-	UnRegister chan Subscription
+	unRegister chan Subscription
 }
 
 type Subscription struct {
@@ -32,17 +38,17 @@ type Connection struct {
 	Send chan []byte
 }
 
-type WSUsers struct {
+type wsUsers struct {
 	// Registered users on a WS connections.
-	RoomUsers map[primitive.ObjectID]*Connection
+	roomUsers map[primitive.ObjectID]*Connection
 	// Lock.
-	Mutex *sync.RWMutex
+	mutex *sync.RWMutex
 }
 
 // Websocket message structure.
-type WSMessage struct {
+type wsMessage struct {
 	// Websocket message.
-	Data []byte
+	data []byte
 	// User who sent message.
-	User primitive.ObjectID
+	user primitive.ObjectID
 }
