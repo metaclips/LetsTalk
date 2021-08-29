@@ -27,10 +27,29 @@ func NewMongoStore(db *mongo.Database, collection string) Database {
 
 func InitDatabaseIndexing(ctx context.Context, db *mongo.Database) {
 	_, _ = db.Collection(constants.RoomRequestCollection).Indexes().CreateOne(ctx, mongo.IndexModel{
-		Keys:    bsonx.Doc{bsonx.Elem{Key: "userID", Value: bsonx.Int32(1)}, bsonx.Elem{Key: "roomID", Value: bsonx.Int32(1)}},
+		Keys:    bsonx.Doc{bsonx.Elem{Key: "userToJoinID", Value: bsonx.Int32(1)}, bsonx.Elem{Key: "roomID", Value: bsonx.Int32(1)}, bsonx.Elem{Key: "deletedAt", Value: bsonx.Int32(1)}},
 		Options: options.Index().SetUnique(true),
 	},
 	)
+
+	_, _ = db.Collection(constants.UserCollection).Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys:    bsonx.Doc{bsonx.Elem{Key: "email", Value: bsonx.Int32(1)}, bsonx.Elem{Key: "deletedAt", Value: bsonx.Int32(1)}},
+		Options: options.Index().SetUnique(true),
+	},
+	)
+
+	_, _ = db.Collection(constants.UserCollection).Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys:    bsonx.Doc{bsonx.Elem{Key: "matricNumber", Value: bsonx.Int32(1)}, bsonx.Elem{Key: "deletedAt", Value: bsonx.Int32(1)}},
+		Options: options.Index().SetUnique(true).SetPartialFilterExpression(bson.D{bson.E{Key: "matricNumber", Value: bson.D{bson.E{Key: "$type", Value: "string"}}}}),
+	},
+	)
+
+	{
+		_, _ = db.Collection(constants.UserCollection).Indexes().CreateOne(ctx, mongo.IndexModel{
+			Keys: bson.M{"email": "text", "firstName": "text", "lastName": "text", "matricNumber": "text", "department": "text", "faculty": "text", "year": "text"},
+		},
+		)
+	}
 }
 
 func (d *mongoDB) Save(ctx context.Context, payload interface{}, out interface{}) error {
@@ -196,8 +215,9 @@ func (d *mongoDB) CompleteDeleteOne(ctx context.Context, fields map[string]inter
 	return nil
 }
 
-func (d *mongoDB) Count(ctx context.Context, fields map[string]interface{}) (int64, error) {
+func (d *mongoDB) Count(ctx context.Context, fields map[string]interface{}) (int, error) {
 	fields["deletedAt"] = nil
 
-	return d.collection.CountDocuments(ctx, fields)
+	count, err := d.collection.CountDocuments(ctx, fields)
+	return int(count), err
 }

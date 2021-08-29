@@ -2,7 +2,9 @@ package models
 
 import (
 	"context"
+	"time"
 
+	"github.com/metaclips/LetsTalk/backend/helpers/paging"
 	"github.com/metaclips/LetsTalk/backend/middlewares/database"
 	v1resources "github.com/metaclips/LetsTalk/backend/resources/api/v1"
 	"go.mongodb.org/mongo-driver/bson"
@@ -34,6 +36,46 @@ func (u User) GetUserByID(ctx context.Context, ID primitive.ObjectID) (*v1resour
 	}
 
 	return &user, nil
+}
+
+func (u User) GetUserByUUID(ctx context.Context, uuid string) (*v1resources.UserData, error) {
+	user := v1resources.UserData{}
+	if err := u.db.FindOne(ctx, bson.M{"uuid": uuid}, nil, &user); err != nil {
+		return nil, err
+	}
+
+	return &user, nil
+}
+
+func (u User) GetRegisteredMinors(ctx context.Context) (*v1resources.PrunedUserList, error) {
+	user := []v1resources.PrunedUser{}
+	if err := u.db.FindOne(ctx, bson.M{"dob": bson.M{"$gt": time.Now().Add(-(time.Hour * 365 * 24) - time.Hour)}}, nil, &user); err != nil {
+		return nil, err
+	}
+
+	count, err := u.db.Count(ctx, bson.M{"dob": bson.M{"$gt": time.Now().Add(-(time.Hour * 365 * 24) - time.Hour)}})
+	if err != nil {
+		return nil, err
+	}
+
+	return &v1resources.PrunedUserList{
+		Data:  user,
+		Count: count,
+	}, nil
+}
+
+func (u User) GetUsersPrunedData(ctx context.Context, paging *paging.Paging) (*v1resources.PrunedUserList, error) {
+	users := make([]v1resources.PrunedUser, 0)
+
+	count, err := paging.PagedRequest(ctx, nil, u.db, &users)
+	if err != nil {
+		return nil, err
+	}
+
+	return &v1resources.PrunedUserList{
+		Data:  users,
+		Count: count,
+	}, nil
 }
 
 func (u User) GetUserByEmail(ctx context.Context, email string) (*v1resources.UserData, error) {

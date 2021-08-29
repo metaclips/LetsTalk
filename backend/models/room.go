@@ -22,9 +22,6 @@ func NewRoom(db database.Database) Room {
 // Create new Room instance. Note should be called right after storing
 // success message.
 func (b Room) CreateNewRoom(ctx context.Context, room *v1resources.Room) error {
-	room.ID = primitive.NewObjectID()
-	room.MessageCount = 1
-
 	if err := b.db.Save(ctx, room, nil); err != nil {
 		return err
 	}
@@ -40,17 +37,18 @@ func (b Room) UpdateRoom(ctx context.Context, room *v1resources.Room) error {
 	return b.db.UpdateByID(ctx, room.ID, room)
 }
 
-func (b Room) RetrieveJoinedRooms(ctx context.Context, IDs []v1resources.GetJoinedRoomRequest, limit, skip int64) (*v1resources.RoomList, error) {
+func (b Room) RetrieveJoinedRooms(ctx context.Context, IDs []v1resources.GetJoinedRoomRequest, limit, skip int) (*v1resources.RoomList, error) {
 	rooms := make([]v1resources.Room, len(IDs))
 
 	for i, id := range IDs {
-		err := b.db.FindByID(ctx, id, nil, &rooms[i])
+		err := b.db.FindByID(ctx, id.RoomID, nil, &rooms[i])
 		if err != nil {
 			return nil, err
 		}
 	}
 
 	return &v1resources.RoomList{
-		Data: rooms,
+		Data:  rooms,
+		Count: len(IDs),
 	}, nil
 }

@@ -15,6 +15,7 @@ import (
 	"github.com/metaclips/LetsTalk/backend/models"
 	v1resources "github.com/metaclips/LetsTalk/backend/resources/api/v1"
 	log "github.com/sirupsen/logrus"
+	"go.mongodb.org/mongo-driver/mongo"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -32,7 +33,7 @@ func NewLoginController(user models.User, cookies cookies.Cookies) *LoginControl
 	}
 }
 
-func (l LoginController) Login(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+func (l *LoginController) Login(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
 	login := v1resources.UserLogin{}
 	decoder := json.NewDecoder(req.Body)
 	if err := decoder.Decode(&login); err != nil {
@@ -54,19 +55,40 @@ func (l LoginController) Login(w http.ResponseWriter, req *http.Request, _ httpr
 		return
 	}
 
+	if !userData.Verified {
+		apihelpers.Respond(w, http.StatusUnauthorized, nil, "", "user not authorized")
+		return
+	}
+
 	if err := bcrypt.CompareHashAndPassword(userData.Password, []byte(login.Password)); err != nil {
 		log.Errorln("error decoding login data: ", err)
 		apihelpers.Respond(w, http.StatusBadRequest, nil, "", api_errors.ErrInvalidCredentials.Error())
 		return
 	}
 
-	if err := l.cookie.GenerateCookie(l.ctx, w, login.Email, constants.UserCookieName, "/"); err != nil {
+	cookie, uuid, err := l.cookie.GenerateCookie(l.ctx, login.Email, constants.UserCookieName)
+	if err != nil {
 		log.Errorln("error generating cookies for user: ", err)
-		apihelpers.Respond(w, http.StatusInternalServerError, nil, "", api_errors.ErrGeneric.Error())
+		status, errVal := getStatusAndErr(err)
+		apihelpers.Respond(w, status, nil, "", errVal)
 		return
 	}
 
-	apihelpers.Respond(w, http.StatusOK, nil, "successful login", "")
+	apihelpers.Respond(w, http.StatusOK, v1resources.LoginResponse{
+		Token:    cookie,
+		WSTicket: uuid,
+		UserID:   userData.ID,
+	}, "successful login", "")
+}
 
-	http.Redirect(w, req, "/", http.StatusMovedPermanently)
+func getStatusAndErr(err error) (status int, errVal string) {
+	if api_errors.IsMongoDup(err) {
+		return http.StatusBadRequest, "content already registered"
+	}
+
+	if err == mongo.ErrNoDocuments {
+		return http.StatusBadRequest, "content does not exist"
+	}
+
+	return http.StatusInternalServerError, api_errors.ErrGeneric.Error()
 }

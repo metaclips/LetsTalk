@@ -3,11 +3,11 @@ package cookies
 import (
 	"context"
 	"net/http"
+	"strings"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/gorilla/securecookie"
-	api_constants "github.com/metaclips/LetsTalk/backend/helpers/constants"
+	"github.com/metaclips/LetsTalk/backend/helpers/constants"
 	api_errors "github.com/metaclips/LetsTalk/backend/helpers/errors"
 	"github.com/metaclips/LetsTalk/backend/middlewares/database"
 	"go.mongodb.org/mongo-driver/bson"
@@ -20,10 +20,10 @@ type secureCookie struct {
 }
 
 type cookieData struct {
-	ID      primitive.ObjectID
-	Email   string
-	UUID    string
-	Expires time.Time
+	ID      primitive.ObjectID `json:"-" bson:"_id"`
+	Email   string             `json:"email" bson:"email"`
+	UUID    string             `json:"uuid" bson:"uuid"`
+	Expires time.Time          `json:"expires" bson:"expires"`
 }
 
 const maxTime = time.Hour * 2
@@ -35,58 +35,47 @@ func NewSecureCookie(userDB database.Database) Cookies {
 	}
 }
 
-func (b *secureCookie) GenerateCookie(ctx context.Context, w http.ResponseWriter, email, cookieName, path string) error {
+func (b *secureCookie) GenerateCookie(ctx context.Context, email, cookieName string) (string, string, error) {
 	cookie := cookieData{}
 	exitTime := time.Now().Add(maxTime)
-	cookie.UUID = uuid.New().String()
+	cookie.UUID = primitive.NewObjectID().Hex()
 	cookie.Email = email
 
 	// Update user UUID.
-	err := b.db.UpdateByID(ctx, email, bson.M{"$set": bson.M{"uuid": cookie.UUID, "expires": exitTime}})
+	err := b.db.UpdateOne(ctx, bson.M{"email": email}, bson.M{"uuid": cookie.UUID, "expires": exitTime})
 	if err != nil {
-		return err
+		return "", "", err
 	}
 
 	encoded, err := b.handler.Encode(cookieName, cookie)
 	if err != nil {
-		return err
+		return "", "", err
 	}
 
-	http.SetCookie(w, &http.Cookie{
-		Name:     api_constants.UserCookieName,
-		Value:    encoded,
-		Path:     path,
-		Secure:   true,
-		HttpOnly: true,
-	})
-
-	return nil
+	return encoded, cookie.UUID, nil
 }
 
 func (b *secureCookie) CheckCookie(ctx context.Context, r *http.Request, cookieName string) (*primitive.ObjectID, error) {
-	cookie, err := r.Cookie(cookieName)
-	if err != nil {
-		return nil, err
+	authorization := r.Header.Get(constants.AuthorizationHeader)
+
+	bearer := "BEARER"
+	if len(authorization) > len(bearer) && strings.ToUpper(authorization[0:len(bearer)]) == bearer {
+		authorization = authorization[len(bearer)+1:]
 	}
 
-	if cookie.Value == "" {
+	if authorization == "" {
 		return nil, api_errors.ErrTokenNotSpecified
 	}
 
 	data := cookieData{}
 
-	if err := b.handler.Decode(cookieName, cookie.Value, &data); err != nil {
+	if err := b.handler.Decode(cookieName, authorization, &data); err != nil {
 		return nil, api_errors.ErrInvalidToken
-	}
-
-	// Ensure hasn't expired.
-	if cookie.Expires.Before(time.Now().Local()) {
-		return nil, api_errors.ErrCookieExpired
 	}
 
 	// Validate
 	dbCookieData := cookieData{}
-	if err := b.db.FindByID(ctx, data.Email, nil, &dbCookieData); err != nil {
+	if err := b.db.FindOne(ctx, bson.M{"email": data.Email}, nil, &dbCookieData); err != nil {
 		return nil, err
 	}
 
@@ -107,7 +96,7 @@ func (b *secureCookie) CheckCookie(ctx context.Context, r *http.Request, cookieN
 
 func (b *secureCookie) ExtendCookie(ctx context.Context, email string) error {
 	// Update user UUID.
-	err := b.db.UpdateByID(ctx, email, bson.M{"$set": bson.M{"expires": time.Now().Add(maxTime)}})
+	err := b.db.UpdateOne(ctx, bson.M{"email": email}, bson.M{"expires": time.Now().Add(maxTime)})
 	if err != nil {
 		return err
 	}

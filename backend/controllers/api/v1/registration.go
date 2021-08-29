@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	apihelpers "github.com/metaclips/LetsTalk/backend/apihelper"
 	"github.com/metaclips/LetsTalk/backend/helpers/constants"
 	api_errors "github.com/metaclips/LetsTalk/backend/helpers/errors"
@@ -23,19 +24,21 @@ import (
 )
 
 type RegistrationController struct {
-	user       models.User
+	user   models.User
+	mailer v1resources.Mailer
+
 	ctx        context.Context
 	cancelFunc context.CancelFunc
 }
 
-func NewRegistrationController(user models.User) *RegistrationController {
+func NewRegistrationController(user models.User, mailer v1resources.Mailer) *RegistrationController {
 	ctx, cancelFunc := app_context.CreateChildCancelContext()
 	return &RegistrationController{
-		user, ctx, cancelFunc,
+		user, mailer, ctx, cancelFunc,
 	}
 }
 
-func (r RegistrationController) RegisterUser(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+func (r *RegistrationController) RegisterUser(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
 	registration := v1resources.UserRegistration{}
 	decoder := json.NewDecoder(req.Body)
 	if err := decoder.Decode(&registration); err != nil {
@@ -46,6 +49,14 @@ func (r RegistrationController) RegisterUser(w http.ResponseWriter, req *http.Re
 
 	if err := validation.ValidateInputs(registration); err != nil {
 		apihelpers.Respond(w, http.StatusBadRequest, nil, "", err.Error())
+		return
+	}
+
+	var err error
+	registration.DOB, err = time.Parse(constants.DateOnly, registration.DOB.Format(constants.DateOnly))
+	if err != nil {
+		log.Errorln("error parsing users date of birth:", err)
+		apihelpers.Respond(w, http.StatusBadRequest, nil, "", api_errors.ErrInvalidDOB.Error())
 		return
 	}
 
@@ -91,7 +102,12 @@ func (r RegistrationController) RegisterUser(w http.ResponseWriter, req *http.Re
 		Faculty:    registration.Faculty,
 		IsStaff:    registration.IsStaff,
 		Year:       registration.Year,
+		UUID:       uuid.New().String(),
 		CreatedAt:  time.Now(),
+	}
+
+	if registration.MatricNumber != "" {
+		userData.MatricNumber = &registration.MatricNumber
 	}
 
 	if err := r.user.CreateUser(r.ctx, &userData); err != nil {
@@ -100,7 +116,38 @@ func (r RegistrationController) RegisterUser(w http.ResponseWriter, req *http.Re
 		return
 	}
 
-	// ToDo: Send an email to users.
+	if err := r.mailer.MailTo(userData.Email, userData.UUID); err != nil {
+		log.Errorln("error sending verification email:", err)
+		apihelpers.Respond(w, http.StatusInternalServerError, nil, "", "error sending verification email")
+		return
+	}
 
 	apihelpers.Respond(w, http.StatusCreated, nil, "user successfully registered", "")
+}
+
+func (r *RegistrationController) VerifyUser(w http.ResponseWriter, req *http.Request, param httprouter.Params) {
+	userUUID := param.ByName("uuid")
+	email := param.ByName("email")
+	userData, err := r.user.GetUserByUUID(r.ctx, userUUID)
+	if err != nil {
+		log.Errorln("error getting users details on verify user:", err)
+		status, err := getStatusAndErr(err)
+		apihelpers.Respond(w, status, nil, "", err)
+		return
+	}
+
+	if userData.Email != email {
+		apihelpers.Respond(w, http.StatusBadRequest, nil, "", "user not associated")
+		return
+	}
+
+	userData.Verified = true
+	if err := r.user.UpdateUser(r.ctx, userData); err != nil {
+		log.Errorln("error updating users details on verify user:", err)
+		status, err := getStatusAndErr(err)
+		apihelpers.Respond(w, status, nil, "", err)
+		return
+	}
+
+	apihelpers.Respond(w, http.StatusOK, nil, "user successfully verified", "")
 }

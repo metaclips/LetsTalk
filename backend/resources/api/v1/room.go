@@ -1,29 +1,43 @@
 package v1resources
 
-import "go.mongodb.org/mongo-driver/bson/primitive"
+import (
+	"time"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
+)
 
 type JoinRoomRequest struct {
 	ID           primitive.ObjectID `bson:"_id" json:"_id"`
-	UserID       primitive.ObjectID `bson:"userID" json:"userID"`
-	UserToJoinID primitive.ObjectID `bson:"userToJoinID" json:"userToJoinID"`
-	RoomID       string             `bson:"roomID" json:"roomID"`
-	RoomName     string             `bson:"roomName" json:"roomName"`
+	UserID       primitive.ObjectID `bson:"userID" json:"userID" validate:"required"`
+	UserToJoinID primitive.ObjectID `bson:"userToJoinID" json:"userToJoinID" validate:"required"`
+	RoomID       primitive.ObjectID `bson:"roomID" json:"roomID" validate:"required"`
+	RoomName     string             `bson:"roomName" json:"roomName" validate:"required"`
 	Accepted     bool               `json:"accepted" bson:"accepted"`
+	RejectRoom   bool               `json:"rejectRoom" bson:"rejectRoom"`
 	ExitedRoom   bool               `json:"exitedRoom" bson:"exitedRoom"`
+	CreatedAt    time.Time          `bson:"createdAt" json:"-"`
+	DeletedAt    *time.Time         `bson:"deletedAt" json:"-"`
 }
 
 type GetJoinedRoomRequest struct {
-	ID primitive.ObjectID `bson:"_id" json:"_id"`
+	RoomID   primitive.ObjectID `bson:"roomID" json:"roomID"`
+	RoomName string             `bson:"roomName" json:"roomName" validate:"required"`
 }
 
 type JoinRoomRequestList struct {
 	Data  []JoinRoomRequest `json:"data"`
-	Count int64             `json:"count"`
+	Count int               `json:"count"`
+}
+
+type ExitRoomRequest struct {
+	JoinRoomID primitive.ObjectID `bson:"joinRoomID" json:"joinRoomID" validate:"required"`
+	UserID     primitive.ObjectID `bson:"userID" json:"userID" validate:"required"`
+	RoomID     primitive.ObjectID `bson:"roomID" json:"roomID" validate:"required"`
 }
 
 type GetJoinedRoomRequestList struct {
 	Data  []GetJoinedRoomRequest `json:"data"`
-	Count int64                  `json:"count"`
+	Count int                    `json:"count"`
 }
 
 // Room struct defineds content details for users room.
@@ -39,13 +53,15 @@ type RoomOutput struct {
 
 // NewRoomRequest struct defines contents to create a new room.
 type Room struct {
-	ID           primitive.ObjectID `bson:"_id" json:"_id"`
-	RoomName     string             `bson:"roomName" json:"roomName,omitempty"`
-	RoomIcon     string             `bson:"roomIcon" json:"roomIcon"`
-	MessageCount int                `bson:"messageCount" json:"messageCount"`
+	ID             primitive.ObjectID `bson:"_id" json:"_id"`
+	CreateByUserID primitive.ObjectID `json:"createByUserID" bson:"createByUserID"`
+	RoomName       string             `bson:"roomName" json:"roomName,omitempty" validate:"required"`
+	RoomIcon       string             `bson:"roomIcon" json:"roomIcon"`
+	CreatedAt      time.Time          `bson:"createdAt" json:"-"`
+	DeletedAt      *time.Time         `bson:"deletedAt" json:"-"`
 }
 
 type RoomList struct {
 	Data  []Room `json:"data"`
-	Count int64  `json:"count"`
+	Count int    `json:"count"`
 }

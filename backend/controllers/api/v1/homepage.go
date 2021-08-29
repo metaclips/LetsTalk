@@ -16,6 +16,7 @@ import (
 )
 
 type HomepageController struct {
+	messages    models.Messages
 	user        models.User
 	room        models.Room
 	roomRequest models.RoomRequest
@@ -24,14 +25,15 @@ type HomepageController struct {
 	cookie      cookies.Cookies
 }
 
-func NewHomepageController(user models.User, room models.Room, roomRequest models.RoomRequest, cookies cookies.Cookies) *HomepageController {
+func NewHomepageController(message models.Messages, user models.User, room models.Room, roomRequest models.RoomRequest, cookies cookies.Cookies) *HomepageController {
 	ctx, cancelFunc := app_context.CreateChildCancelContext()
 	return &HomepageController{
+		message,
 		user, room, roomRequest, ctx, cancelFunc, cookies,
 	}
 }
 
-func (h HomepageController) HomePage(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func (h *HomepageController) HomePage(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ID, err := h.cookie.CheckCookie(h.ctx, r, constants.UserCookieName)
 	if err != nil {
 		log.Errorln("error checking users cookies: ", err)

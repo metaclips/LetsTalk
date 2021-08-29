@@ -12,7 +12,10 @@ import (
 	appcontext "github.com/metaclips/LetsTalk/backend/middlewares/context"
 	"github.com/metaclips/LetsTalk/backend/middlewares/cookies"
 	"github.com/metaclips/LetsTalk/backend/middlewares/database"
+	"github.com/metaclips/LetsTalk/backend/middlewares/peerconnection"
+	appWebsocket "github.com/metaclips/LetsTalk/backend/middlewares/websocket"
 	"github.com/metaclips/LetsTalk/backend/models"
+	v1resources "github.com/metaclips/LetsTalk/backend/resources/api/v1"
 	log "github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -37,18 +40,24 @@ func StartV1() {
 	roomCollection := database.NewMongoStore(db, constants.RoomCollection)
 	messageCollection := database.NewMongoStore(db, constants.MessagesCollection)
 
-	_ = models.NewMessages(messageCollection)
+	messageModel := models.NewMessages(messageCollection)
 	roomModel := models.NewRoom(roomCollection)
 	roomRequestModel := models.NewRoomRequest(roomRequestCollection)
 	usersModel := models.NewUser(usersCollection)
 
 	usersCookie := cookies.NewSecureCookie(usersCollection)
 
-	homeController := v1controller.NewHomepageController(usersModel, roomModel, roomRequestModel, usersCookie)
-	loginController := v1controller.NewLoginController(usersModel, usersCookie)
-	usersController := v1controller.NewRegistrationController(usersModel)
+	pc := peerconnection.NewPionPeerConnection()
+	mailer := v1resources.GoogleMailer{}
 
-	router := NewRouter(homeController, loginController, usersController)
+	apoWebsocket := appWebsocket.NewGorillaWebsocket(pc, roomRequestModel, messageModel, usersModel, roomModel)
+
+	homeController := v1controller.NewHomepageController(messageModel, usersModel, roomModel, roomRequestModel, usersCookie)
+	loginController := v1controller.NewLoginController(usersModel, usersCookie)
+	usersController := v1controller.NewRegistrationController(usersModel, &mailer)
+	wsController := v1controller.NewWebsocketController(usersModel, apoWebsocket)
+
+	router := NewRouter(homeController, loginController, usersController, wsController)
 	srv := http.Server{}
 
 	go func() {
@@ -79,13 +88,15 @@ func StartV1() {
 }
 
 func NewRouter(home *v1controller.HomepageController, login *v1controller.LoginController,
-	registration *v1controller.RegistrationController) *httprouter.Router {
+	registration *v1controller.RegistrationController, ws *v1controller.WebsocketController) *httprouter.Router {
 
 	router := httprouter.New()
 
 	router.POST("/v1/login", login.Login)
 	router.POST("/v1/register", registration.RegisterUser)
+	router.POST("/v1/verify/:email/:uuid", registration.VerifyUser)
 	router.GET("/v1/home", home.HomePage)
+	router.GET("/v1/ws/:userID/:ticket", ws.Websocket)
 
 	return router
 }

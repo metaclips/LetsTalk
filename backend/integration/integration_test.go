@@ -7,22 +7,27 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
-	"net/http/cookiejar"
 	"net/http/httptest"
 	"os"
 	"testing"
+	"time"
 
 	apihelpers "github.com/metaclips/LetsTalk/backend/apihelper"
 	v1controller "github.com/metaclips/LetsTalk/backend/controllers/api/v1"
 	"github.com/metaclips/LetsTalk/backend/helpers/constants"
+	"github.com/metaclips/LetsTalk/backend/integration/mocker"
 	appcontext "github.com/metaclips/LetsTalk/backend/middlewares/context"
 	"github.com/metaclips/LetsTalk/backend/middlewares/cookies"
 	"github.com/metaclips/LetsTalk/backend/middlewares/database"
+	"github.com/metaclips/LetsTalk/backend/middlewares/peerconnection"
+	appWebsocket "github.com/metaclips/LetsTalk/backend/middlewares/websocket"
 	"github.com/metaclips/LetsTalk/backend/models"
 	v1resources "github.com/metaclips/LetsTalk/backend/resources/api/v1"
 	v1router "github.com/metaclips/LetsTalk/backend/router/v1"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type handler struct {
@@ -34,6 +39,8 @@ type handler struct {
 	roomRequest models.RoomRequest
 	room        models.Room
 	messages    models.Messages
+
+	mocker *mocker.Mocker
 
 	server *httptest.Server
 	client *http.Client
@@ -59,6 +66,7 @@ func integration() {
 	panicOnError(err)
 
 	testHandler.db = client.Database(apihelpers.Config.DbName)
+	testHandler.db.Drop(ctx)
 	testHandler.cancelfunc = cancel
 	testHandler.ctx = ctx
 
@@ -85,23 +93,50 @@ func integration() {
 
 	usersCookie := cookies.NewSecureCookie(usersCollection)
 
-	homeController := v1controller.NewHomepageController(usersModel, roomModel, roomRequestModel, usersCookie)
+	pc := peerconnection.NewPionPeerConnection()
+	mocker := &mocker.Mocker{}
+
+	apoWebsocket := appWebsocket.NewGorillaWebsocket(pc, roomRequestModel, messagesModel, usersModel, roomModel)
+
+	homeController := v1controller.NewHomepageController(messagesModel, usersModel, roomModel, roomRequestModel, usersCookie)
 	loginController := v1controller.NewLoginController(usersModel, usersCookie)
-	usersController := v1controller.NewRegistrationController(usersModel)
+	usersController := v1controller.NewRegistrationController(usersModel, mocker)
+	wsController := v1controller.NewWebsocketController(usersModel, apoWebsocket)
 
-	router := v1router.NewRouter(homeController, loginController, usersController)
+	router := v1router.NewRouter(homeController, loginController, usersController, wsController)
 
-	testHandler.server = httptest.NewTLSServer(router)
+	testHandler.server = httptest.NewServer(router)
 	testHandler.client = testHandler.server.Client()
 
-	testHandler.client.Jar, err = cookiejar.New(nil)
+	testHandler.mocker = mocker
+
 	panicOnError(err)
 }
 
-func (c *handler) seedOneUser(user *v1resources.UserData) error {
+func (c *handler) seedOneUser(email string) (*v1resources.UserData, error) {
+	password, err := bcrypt.GenerateFromPassword([]byte("password"), constants.BcryptCost)
+	if err != nil {
+		return nil, err
+	}
+
+	user := v1resources.UserData{
+		ID:         primitive.NewObjectID(),
+		Email:      email,
+		FirstName:  "Michael",
+		LastName:   "Uti",
+		DOB:        time.Now(),
+		Password:   password,
+		Department: constants.ComputerEngineering,
+		Faculty:    constants.EngineeringFaculty,
+		IsStaff:    false,
+		Verified:   true,
+		Year:       2015,
+		CreatedAt:  time.Now(),
+	}
+
 	collection := c.db.Collection(constants.UserCollection)
-	_, err := collection.InsertOne(c.ctx, user)
-	return err
+	_, err = collection.InsertOne(c.ctx, &user)
+	return &user, err
 }
 
 func (c *handler) makeNormalRequest(method, urlVal string, body interface{}) (*http.Response, error) {
@@ -118,7 +153,7 @@ func (c *handler) makeNormalRequest(method, urlVal string, body interface{}) (*h
 	return c.client.Do(req)
 }
 
-func (c *handler) makeNormalCookieRequest(method, urlVal string, body interface{}, cookie *http.Cookie) (*http.Response, error) {
+func (c *handler) makeAuthRequest(method, urlVal, token string, body interface{}) (*http.Response, error) {
 	data, err := json.Marshal(body)
 	if err != nil {
 		return nil, err
@@ -129,7 +164,7 @@ func (c *handler) makeNormalCookieRequest(method, urlVal string, body interface{
 		return nil, err
 	}
 
-	req.AddCookie(cookie)
+	req.Header.Set("Authorization", "BEARER"+" "+token)
 
 	return c.client.Do(req)
 }
