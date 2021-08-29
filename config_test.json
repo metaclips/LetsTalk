@@ -1,0 +1,25 @@
+{
+    "ICEServers": [
+        {
+            "URLs": [
+                "stun:stun.l.google.com:19302"
+            ],
+            "Username": "",
+            "AuthType": "Password",
+            "AuthSecret": ""
+        }
+    ],
+    "TLS": {
+        "CertPath": "cert.pem",
+        "KeyPath": "key.pem"
+    },
+    "CorsAllowedOrigins": [
+        "https://127.0.0.1:8080"
+    ],
+    "DbHost": "mongodb://localhost:27017",
+    "Email": "utimichael9@gmail.com",
+    "DbName": "LetsTalkDB",
+    "DropboxToken": "",
+    "EnableClassSessionRecord": true,
+    "Port": ""
+}

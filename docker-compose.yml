@@ -1,13 +1,37 @@
-version: "3"
-
+version: '3.7'
 services:
-  api:
-    build: 
-        context: .
-        dockerfile: Dockerfile
-    container_name: LetsTalkAPI
-    volumes:
-        - api:/usr/src/app/
+    # The Go App
+    go-app:
+        build: .
+        container_name: letstalk
+        depends_on:
+            - 'mongo'
+        environment:
+            - PORT=8080
+        ports:
+            - '8080:8080'
+        volumes:
+            - './:/opt/letstalk'
 
-volumes:
-    api:
+    # MongoDB
+    mongo:
+        image: 'mongo'
+        container_name: mongo
+        ports:
+            - '27017:27017'
+        volumes:
+            - ./mongodata:/data/db
+        restart: always
+        environment:
+          MONGO_INITDB_ROOT_USERNAME: root
+          MONGO_INITDB_ROOT_PASSWORD: letstalk
+
+    mongo-express:
+      image: mongo-express
+      restart: always
+      ports:
+        - 8081:8081
+      environment:
+        ME_CONFIG_MONGODB_ADMINUSERNAME: root
+        ME_CONFIG_MONGODB_ADMINPASSWORD: letstalk
+        ME_CONFIG_MONGODB_URL: mongodb://root:letstalk@mongo:27017/

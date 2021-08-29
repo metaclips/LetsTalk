@@ -7,62 +7,40 @@ on:
     branches: [master]
 
 jobs:
-  mongoDB:
-    runs-on: ubuntu-latest
-    steps:
-    - name: Start MongoDB using Docker
-      run:  docker run -d -p 27017-27019:27017-27019 --name mongo mongo
-      
-  nodeJS:
-    strategy:
-      matrix:
-        node-version: [12.x]
-    runs-on: ubuntu-latest
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v1
-      with:
-        node-version: ${{ matrix.node-version }}
-    - name: Run npm install and build
-      run: |
-        npm install
-        npm build
-
   golang:
     strategy:
       matrix:
-        go-version: [1.15]
+        go-version: [1.16.5]
     runs-on: ubuntu-latest
     steps:
+    - name: Configure git for private modules
+      env:
+        TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+      run: git config --global url."https://metaclips:${TOKEN}@github.com".insteadOf "https://github.com"
+
     - name: Checkout code
       uses: actions/checkout@v2
-    - name: Install Go
-      uses: actions/setup-go@v1
+
+    # - name: golangci-lint
+    #   uses: golangci/golangci-lint-action@v2
+    #   with:
+    #     # Required:  the version of golangci-lint is required and must be specified without patch version: we always use the latest patch version.
+    #     version: v1.41.1
+
+    - name: Start MongoDB using Docker
+      uses: supercharge/mongodb-github-action@1.3.0
       with:
-        go-version: ${{ matrix.go-version }}
+        mongodb-version: 4.4
+
     - name: Start tests
-      env: 
-        db_host: ${{ secrets.db_host }}
-      run: go test -race ./...
-    - name: Install linter
-      run: "curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(go env GOPATH)/bin v1.23.8"    
+      run: go test -timeout 1800m ./...
+    # - name: Start Race tests
+    #   run: go test -timeout 1800m -race ./...
+
     - name: Install dependencies
-      if: steps.cache.outputs.cache-hit != 'true'
-      run: go mod download       
+      run: go mod download
+
     - name: Build
       env:
         GOPROXY: "https://proxy.golang.org"
       run: go build
-    - name: Lint
-      run: |
-        export PATH=$PATH:~/go/bin
-        golangci-lint run \
-        --disable-all \
-        --enable govet \
-        --enable staticcheck --enable gosimple \
-        --enable unconvert --enable ineffassign \
-        --enable structcheck --enable goimports \
-        --enable misspell  --enable golint \
-        --enable gosec

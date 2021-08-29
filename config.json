@@ -16,7 +16,9 @@
     "CorsAllowedOrigins": [
         "https://127.0.0.1:8080"
     ],
-    "DbHost": "mongodb://localhost:27017",
+    "Email": "myemail@gmail.com",
+    "EmailPassword": "",
+    "DbHost": "mongodb://root:letstalk@localhost:27017/",
     "DbName": "LetsTalkDB",
     "DropboxToken": "",
     "EnableClassSessionRecord": true,
