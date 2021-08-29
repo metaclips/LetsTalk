@@ -22,6 +22,11 @@ import (
 )
 
 func StartV1() {
+	err := apihelper.LoadConfiguration("../../config.json")
+	if err != nil {
+		log.Fatalln("error loading config:", err)
+	}
+
 	ctx, _ := appcontext.CreateChildCancelContext()
 
 	clientOptions := options.Client().ApplyURI(apihelper.Config.DbHost)
