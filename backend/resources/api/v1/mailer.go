@@ -33,7 +33,7 @@ func (g *GoogleMailer) MailTo(email, uuid string) error {
 	// Settings for SMTP server
 	d := gomail.NewDialer("smtp.gmail.com", 587, apihelper.Config.Email, apihelper.Config.EmailPassword)
 
-	d.TLSConfig = &tls.Config{InsecureSkipVerify: false, MinVersion: tls.VersionTLS13, MaxVersion: tls.VersionTLS13}
+	d.TLSConfig = &tls.Config{InsecureSkipVerify: true}
 
 	if err := d.DialAndSend(m); err != nil {
 		log.Errorln("error sending email:", err)
