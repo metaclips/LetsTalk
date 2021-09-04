@@ -16,9 +16,9 @@
     "CorsAllowedOrigins": [
         "https://127.0.0.1:8080"
     ],
-    "DbHost": "mongodb+srv://admin:admin@cluster0.huyp5.mongodb.net/test?retryWrites=true&w=majority",
+    "DbHost": "mongodb://0.0.0.0:27017/test",
     "Email": "utimichael9@gmail.com",
-    "DbName": "LetsTalkDB",
+    "DbName": "test",
     "DropboxToken": "",
     "EnableClassSessionRecord": true,
     "Port": ""
