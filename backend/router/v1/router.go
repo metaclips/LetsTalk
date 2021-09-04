@@ -16,6 +16,7 @@ import (
 	appWebsocket "github.com/metaclips/LetsTalk/backend/middlewares/websocket"
 	"github.com/metaclips/LetsTalk/backend/models"
 	v1resources "github.com/metaclips/LetsTalk/backend/resources/api/v1"
+	"github.com/rs/cors"
 	log "github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -63,10 +64,29 @@ func StartV1() {
 	wsController := v1controller.NewWebsocketController(usersModel, apoWebsocket)
 
 	router := NewRouter(homeController, loginController, usersController, wsController)
-	srv := http.Server{}
+
+	port := apihelper.Config.Port
+	if port == "" {
+		port = os.Getenv("PORT")
+	}
+
+	if port == "" {
+		port = "8080"
+	}
+
+	handler := cors.New(cors.Options{
+		Debug:          true,
+		AllowedMethods: []string{"GET", "POST"},
+		AllowedHeaders: []string{"Content-Type"},
+	}).Handler(router)
+
+	srv := http.Server{
+		Addr:    ":" + port,
+		Handler: handler,
+	}
 
 	go func() {
-		if err := StartRouter(router); err != nil {
+		if err := StartRouter(&srv); err != nil {
 			panic(err)
 		}
 
@@ -77,16 +97,16 @@ func StartV1() {
 	signal.Notify(quit, os.Interrupt)
 	<-quit
 
-	log.Infoln("Shutdown Server ...")
-
-	if err := srv.Shutdown(ctx); err != nil {
-		log.Fatal("Server Shutdown:", err)
-	}
+	log.Infoln("Shuting down Server ...")
 
 	// Signal all children contexts to close.
 	// This stops all database operations and queries.
 	if err := appcontext.CancelContext(); err != nil {
 		panic(err)
+	}
+
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Fatal("Server Shutdown:", err)
 	}
 
 	log.Infoln("Server exiting")
@@ -108,25 +128,17 @@ func NewRouter(home *v1controller.HomepageController, login *v1controller.LoginC
 
 // Starts httprouter on designated port.
 // This is a blocking function.
-func StartRouter(router *httprouter.Router) error {
-	port := apihelper.Config.Port
-	if port == "" {
-		port = os.Getenv("PORT")
-	}
-
-	if port == "" {
-		port = "8080"
-	}
+func StartRouter(server *http.Server) error {
 
 	// Optional use of TLS due to Heroku serving TLS at low level.
 	if apihelper.Config.TLS.CertPath != "" && apihelper.Config.TLS.KeyPath != "" {
-		if err := http.ListenAndServeTLS(":"+port, apihelper.Config.TLS.CertPath, apihelper.Config.TLS.KeyPath, router); err != nil {
-			return err
+		if err := server.ListenAndServeTLS(apihelper.Config.TLS.CertPath, apihelper.Config.TLS.KeyPath); err != nil {
+			log.Fatalln(err)
 		}
 	}
 
 	// Note: without HTTPS users wont be able to login as SetCookie uses Secure flag.
-	if err := http.ListenAndServe(":"+port, router); err != nil {
+	if err := server.ListenAndServe(); err != nil {
 		return err
 	}
 
