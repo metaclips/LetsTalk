@@ -196,6 +196,9 @@ func (h *gorrilaWebsocket) ReadPump(userID primitive.ObjectID, session Subscript
 
 		switch data.MsgType {
 		// TODO: add support to remove message.
+		case constants.WebsocketOpenMsgType:
+			h.loadUserContent(userID)
+
 		case constants.RequestMessages:
 			h.requestMessages(userID, msg)
 
@@ -307,6 +310,34 @@ func (h *gorrilaWebsocket) onPC(data interface{}, roomID *primitive.ObjectID, us
 // 	h.sendMessage(data, user)
 // }
 
+func (g *gorrilaWebsocket) loadUserContent(user primitive.ObjectID) {
+	acceptedRooms, err := g.roomRequest.RetrieveAcceptedJoinRequest(g.ctx, user, 0, 0)
+	if err != nil {
+		log.Errorln("error retrieving accepted rooms by user:", err)
+		return
+	}
+
+	userAssociates, err := g.roomRequest.GetUserAssociates(g.ctx, user)
+	if err != nil {
+		log.Errorln("error retrieving users associates:", err)
+		return
+	}
+
+	unacceptedRooms, err := g.roomRequest.RetrieveUnacceptedRooms(g.ctx, user, 0, 0)
+	if err != nil {
+		log.Errorln("error retrieving unaccepted rooms by users:", err)
+		return
+	}
+
+	// Broadcast to user that is to join, that there's a request.
+	g.sendMessage(map[string]interface{}{
+		"msgType":      constants.WebsocketOpenMsgType,
+		"joinedRooms":  acceptedRooms,
+		"joinRequests": unacceptedRooms,
+		"associates":   userAssociates,
+	}, user)
+}
+
 func (h *gorrilaWebsocket) handleExitRoom(user primitive.ObjectID, msg []byte) {
 	var request = v1resources.ExitRoomRequest{}
 	if err := unmarshalTo(msg, &request); err != nil {
@@ -351,7 +382,10 @@ func (h *gorrilaWebsocket) handleExitRoom(user primitive.ObjectID, msg []byte) {
 	}
 
 	// Broadcast to user that is to join, that there's a request.
-	h.sendMessage(request, user)
+	h.sendMessage(map[string]interface{}{
+		"msgType": constants.ExitRoomMsgType,
+		"data":    request,
+	}, user)
 
 	// Send to the other user the room request.
 	h.saveMessageAndNotifyRoom(request.RoomID, request.UserID, fmt.Sprintf("%s %s (%s) has exited the room.", userLeaving.FirstName, userLeaving.LastName, userLeaving.Email))
@@ -374,7 +408,10 @@ func (h *gorrilaWebsocket) searchUsers(key string, user primitive.ObjectID) {
 		return
 	}
 
-	if err := h.sendMessage(usersList, user); err != nil {
+	if err := h.sendMessage(map[string]interface{}{
+		"msgType": constants.SearchUserMsgType,
+		"data":    usersList,
+	}, user); err != nil {
 		log.Errorln("error sending users data on `searchUsers`: ", err)
 		return
 	}
@@ -427,7 +464,10 @@ func (h *gorrilaWebsocket) newMessage(userID primitive.ObjectID, msg []byte) {
 
 	for _, user := range users {
 		// ToDo: Handle this error properly.
-		if err := h.sendMessage(message, user.UserToJoinID); err != nil {
+		if err := h.sendMessage(map[string]interface{}{
+			"msgType": constants.NewMessageMsgType,
+			"data":    message,
+		}, user.UserToJoinID); err != nil {
 			log.Errorln("error sending message to user:", err)
 			// ToDo: Return error message.
 			continue
@@ -462,7 +502,10 @@ func (h *gorrilaWebsocket) requestMessages(userID primitive.ObjectID, msg []byte
 		return
 	}
 
-	if err := h.sendMessage(messages, userID); err != nil {
+	if err := h.sendMessage(map[string]interface{}{
+		"msgType": constants.RequestMessages,
+		"data":    messages,
+	}, userID); err != nil {
 		log.Errorln("error sending requested message to user:", err)
 	}
 }
@@ -529,7 +572,10 @@ func (h *gorrilaWebsocket) joinRoomRequest(userID primitive.ObjectID, msg []byte
 	}
 
 	// Broadcast to user that is to join, that there's a request.
-	h.sendMessage(request, request.UserToJoinID)
+	h.sendMessage(map[string]interface{}{
+		"msgType": constants.RequestUsersToJoinRoomMsgType,
+		"data":    request,
+	}, request.UserToJoinID)
 
 	// Send to the other user the room request.
 	h.saveMessageAndNotifyRoom(request.RoomID, request.UserToJoinID, fmt.Sprintf("%s %s (%s) has requested %s %s (%s) to join the room.", requester.FirstName, requester.LastName, requester.Email, userToJoin.FirstName, userToJoin.LastName, userToJoin.Email))
@@ -580,10 +626,15 @@ func (h *gorrilaWebsocket) acceptRoomRequest(userID primitive.ObjectID, msg []by
 		return
 	}
 
-	// Broadcast to user to join that there's a new room.
-	h.sendMessage(v1resources.Room{
+	room := v1resources.Room{
 		RoomName: request.RoomName,
 		ID:       request.RoomID,
+	}
+
+	// Broadcast to user to join that there's a new room.
+	h.sendMessage(map[string]interface{}{
+		"msgType": constants.JoinRoomMsgType,
+		"data":    room,
 	}, userID)
 
 	h.saveMessageAndNotifyRoom(request.RoomID, request.UserToJoinID, fmt.Sprintf("%s %s (%s) has has joined the room.", userToJoin.FirstName, userToJoin.LastName, userToJoin.Email))
@@ -636,7 +687,10 @@ func (h *gorrilaWebsocket) createNewRoom(userID primitive.ObjectID, msg []byte) 
 		return
 	}
 
-	if err := h.sendMessage(room, userID); err != nil {
+	if err := h.sendMessage(map[string]interface{}{
+		"msgType": constants.JoinRoomMsgType,
+		"data":    room,
+	}, userID); err != nil {
 		// ToDo: Return error message.
 		return
 	}
@@ -657,7 +711,10 @@ func (h *gorrilaWebsocket) broadcastOnlineStatusToAllUserRoom(userID primitive.O
 	}
 
 	for _, assassociate := range associates {
-		if err := h.sendMessage(status, assassociate); err != nil {
+		if err := h.sendMessage(map[string]interface{}{
+			"msgType": constants.OnlineStatusMsgType,
+			"data":    status,
+		}, assassociate); err != nil {
 			log.Errorln("error sending online status message:", err)
 		}
 	}
@@ -680,7 +737,10 @@ func (h *gorrilaWebsocket) saveMessageAndNotifyRoom(roomID, userID primitive.Obj
 	}
 
 	// Broadcast message to all room users that a `join room request` has been sent.
-	if err := h.broadcastToAllRoomUsers(roomID, data); err != nil {
+	if err := h.broadcastToAllRoomUsers(roomID, map[string]interface{}{
+		"data":    data,
+		"msgType": "NewMessage",
+	}); err != nil {
 		// ToDo: Return error message.
 		return
 	}

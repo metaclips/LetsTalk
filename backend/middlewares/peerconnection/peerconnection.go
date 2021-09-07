@@ -258,6 +258,7 @@ func (p *peerConnection) NewPublisherPeerConnection(userID primitive.ObjectID, d
 		} else if state == webrtc.PeerConnectionStateConnected {
 			// Send the link to others on the chat indicating that there's a connection.
 			// Save message.
+			log.Infoln("publisher connected")
 		} else {
 			log.Warning("publisher for sessionID", sessionID, "in", state, "state")
 		}
@@ -282,7 +283,6 @@ func (p *peerConnection) NewSubscriberPeerConnection(userID primitive.ObjectID, 
 
 	sessionID := sdp.ClassSessionID
 
-	// COPIED!!!!!
 	p.peerConnectionsMutex.Lock()
 	if p.peerConnections[userID] != nil {
 		p.peerConnectionsMutex.Unlock()
@@ -472,11 +472,7 @@ func (p *peerConnection) NewSubscriberPeerConnection(userID primitive.ObjectID, 
 }
 
 func (p *peerConnection) createNegotiation(connection *webrtc.PeerConnection, sdp SDPConstruct) error {
-	err := connection.SetRemoteDescription(
-		webrtc.SessionDescription{
-			SDP:  sdp.SDP.SDP,
-			Type: webrtc.SDPTypeOffer,
-		})
+	err := connection.SetRemoteDescription(*sdp.SDP)
 
 	if err != nil {
 		return err

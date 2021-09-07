@@ -1,110 +1,142 @@
 package test
 
-import (
-	"testing"
-	"time"
+// // TODO: Cleanup this test. Prune duplicate code.
+// func TestPublisher(t *testing.T) {
+// 	email := "peerConnection1@students.unilag.edu.ng"
 
-	"github.com/metaclips/LetsTalk/backend/helpers/constants"
-	"github.com/metaclips/LetsTalk/backend/middlewares/peerconnection"
-	v1resources "github.com/metaclips/LetsTalk/backend/resources/api/v1"
-	"github.com/pion/webrtc/v3"
-	log "github.com/sirupsen/logrus"
-	"github.com/stretchr/testify/assert"
-)
+// 	ws, joinedMsg := createRoom(t, email)
 
-// TODO: Cleanup this test. Prune duplicate code.
-func TestPublisher(t *testing.T) {
-	email := "peerConnection1@students.unilag.edu.ng"
+// 	// Create a peerconnection to connects to the publisher
+// 	pc, err := webrtc.NewPeerConnection(webrtc.Configuration{})
+// 	assert.NoError(t, err)
 
-	userData, err := testHandler.seedOneUser(email)
-	assert.NoError(t, err)
+// 	videoTrack, err := webrtc.NewTrackLocalStaticSample(webrtc.RTPCodecCapability{MimeType: webrtc.MimeTypeVP8}, "video", "pion")
+// 	assert.NoError(t, err)
 
-	ws, err := createWSConn(email)
-	assert.NoError(t, err)
-	if ws == nil {
-		t.FailNow()
-	}
+// 	videoTrackSender, err := pc.AddTrack(videoTrack)
+// 	assert.NoError(t, err)
 
-	err = ws.SetReadDeadline(time.Now().Add(time.Minute * 30))
-	assert.NoError(t, err)
+// 	go func() {
+// 		rtcpBuf := make([]byte, 1500)
+// 		for {
+// 			if _, _, rtcpErr := videoTrackSender.Read(rtcpBuf); rtcpErr != nil {
+// 				return
+// 			}
+// 		}
+// 	}()
 
-	msg := struct {
-		MsgType string `json:"msgType"`
-		v1resources.Room
-	}{
-		MsgType: constants.CreateRoomMsgType,
-		Room: v1resources.Room{
-			CreateByUserID: userData.ID,
-			RoomName:       "My New Room",
-		},
-	}
+// 	offer, err := pc.CreateOffer(nil)
+// 	assert.NoError(t, err)
 
-	err = ws.WriteJSON(msg)
-	assert.NoError(t, err)
+// 	err = pc.SetLocalDescription(offer)
+// 	assert.NoError(t, err)
 
-	result := v1resources.Room{}
-	err = ws.ReadJSON(&result)
-	assert.NoError(t, err)
+// 	pc.OnICECandidate(func(i *webrtc.ICECandidate) {
+// 		log.Infoln(i)
+// 	})
 
-	joinedMsg := v1resources.Message{}
-	err = ws.ReadJSON(&joinedMsg)
-	assert.NoError(t, err)
+// 	gatherer := webrtc.GatheringCompletePromise(pc)
+// 	<-gatherer
 
-	// Create a peerconnection to connects to the publisher
-	pc, err := webrtc.NewPeerConnection(webrtc.Configuration{})
-	assert.NoError(t, err)
+// 	err = ws.WriteJSON(peerconnection.SDPConstruct{
+// 		MsgType: constants.StartClassSession,
+// 		SDP:     pc.LocalDescription(),
+// 		RoomID:  joinedMsg.RoomID,
+// 		UserID:  joinedMsg.UserID,
+// 	})
+// 	assert.NoError(t, err)
 
-	videoTrack, err := webrtc.NewTrackLocalStaticRTP(webrtc.RTPCodecCapability{MimeType: webrtc.MimeTypeVP8}, "video", "pion")
-	assert.NoError(t, err)
+// 	// Wait for OnICECandidate to fire.
+// 	description := peerconnection.SDPConstruct{}
+// 	err = ws.ReadJSON(&description)
+// 	assert.NoError(t, err)
 
-	videoTrackSender, err := pc.AddTrack(videoTrack)
-	assert.NoError(t, err)
+// 	assert.NotEmpty(t, description.ClassSessionID)
 
-	go func() {
-		rtcpBuf := make([]byte, 1500)
-		for {
-			if _, _, rtcpErr := videoTrackSender.Read(rtcpBuf); rtcpErr != nil {
-				return
-			}
-		}
-	}()
+// 	// Set the remote SessionDescription
+// 	err = pc.SetRemoteDescription(*description.SDP)
+// 	assert.NoError(t, err)
 
-	pc.OnICECandidate(func(i *webrtc.ICECandidate) {
-		if i == nil {
-			offer := peerconnection.SDPConstruct{
-				MsgType: constants.StartClassSession,
-				SDP:     pc.LocalDescription(),
-				RoomID:  joinedMsg.RoomID,
-				UserID:  joinedMsg.UserID,
-			}
+// 	log.Infoln("gathering complete and webrtc connected")
 
-			err = ws.WriteJSON(offer)
-			assert.NoError(t, err)
-		}
-	})
+// 	classSessionBroadcast := v1resources.Message{}
+// 	err = ws.ReadJSON(&classSessionBroadcast)
+// 	assert.NoError(t, err)
 
-	offer, err := pc.CreateOffer(nil)
-	assert.NoError(t, err)
+// 	assert.Equal(t, description.ClassSessionID, classSessionBroadcast.Message)
 
-	err = pc.SetLocalDescription(offer)
-	assert.NoError(t, err)
+// 	conn := make(chan struct{})
+// 	pc.OnConnectionStateChange(func(pcs webrtc.PeerConnectionState) {
+// 		log.Errorln("pcs is", pcs)
+// 		if !assert.NotEqual(t, webrtc.PeerConnectionStateFailed, pcs) {
+// 			pc.SignalingState()
+// 			panic("peerconnection failed")
+// 		}
 
-	description := peerconnection.SDPConstruct{}
-	err = ws.ReadJSON(&description)
-	assert.NoError(t, err)
+// 		if pcs == webrtc.PeerConnectionStateConnected {
+// 			log.Infoln("Ok connected")
+// 			conn <- struct{}{}
+// 		}
+// 	})
 
-	assert.NotEmpty(t, description.ClassSessionID)
+// 	<-conn
 
-	// Set the remote SessionDescription
-	err = pc.SetRemoteDescription(*description.SDP)
-	assert.NoError(t, err)
+// 	go func() {
+// 		close := time.Tick(time.Second * 10)
 
-	log.Infoln("gathering complete and webrtc connected")
+// 		for {
+// 			select {
+// 			case <-time.After(20 * time.Millisecond):
+// 				assert.NoError(t, videoTrack.WriteSample(media.Sample{Data: []byte{0x00}, Duration: time.Second}))
+// 			case <-close:
+// 				return
+// 			}
+// 		}
+// 	}()
 
-	classSessionBroadcast := v1resources.Message{}
-	err = ws.ReadJSON(&classSessionBroadcast)
-	assert.NoError(t, err)
+// 	assert.NoError(t, err)
+// }
 
-	assert.Equal(t, description.ClassSessionID, classSessionBroadcast.Message)
-	// Start sending video packets
-}
+// // func TestSubscriber(t *testing.T) {
+// // 	email := "peerConnection2@students.unilag.edu.ng"
+
+// // 	ws, joinedMsg := createRoom(t, email)
+// // }
+
+// func createRoom(t *testing.T, email string) (*websocket.Conn, *v1resources.Message) {
+// 	userData, err := testHandler.seedOneUser(email)
+// 	assert.NoError(t, err)
+
+// 	ws, err := createWSConn(email)
+// 	assert.NoError(t, err)
+// 	if ws == nil {
+// 		t.FailNow()
+// 	}
+
+// 	err = ws.SetReadDeadline(time.Now().Add(time.Minute * 30))
+// 	assert.NoError(t, err)
+
+// 	msg := struct {
+// 		MsgType string `json:"msgType"`
+// 		v1resources.Room
+// 	}{
+// 		MsgType: constants.CreateRoomMsgType,
+// 		Room: v1resources.Room{
+// 			CreateByUserID: userData.ID,
+// 			RoomName:       "My New Room",
+// 		},
+// 	}
+
+// 	err = ws.WriteJSON(msg)
+// 	assert.NoError(t, err)
+
+// 	result := v1resources.Room{}
+// 	err = ws.ReadJSON(&result)
+// 	assert.NoError(t, err)
+
+// 	joinedMsg := v1resources.Message{}
+// 	err = ws.ReadJSON(&joinedMsg)
+// 	assert.NoError(t, err)
+
+// 	return ws, &joinedMsg
+// }
