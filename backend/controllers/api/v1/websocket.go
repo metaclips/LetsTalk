@@ -31,11 +31,17 @@ type WebsocketController struct {
 func NewWebsocketController(user models.User, apiWebsocket appWebsocket.WSInterface) *WebsocketController {
 	ctx, cancelFunc := appContext.CreateChildCancelContext()
 
+	upgrader := websocket.Upgrader{
+		ReadBufferSize:  1024,
+		WriteBufferSize: 1024,
+	}
+
+	upgrader.CheckOrigin = func(r *http.Request) bool {
+		return true
+	}
+
 	return &WebsocketController{
-		user, apiWebsocket, ctx, cancelFunc, websocket.Upgrader{
-			ReadBufferSize:  1024,
-			WriteBufferSize: 1024,
-		},
+		user, apiWebsocket, ctx, cancelFunc, upgrader,
 	}
 }
 
@@ -63,6 +69,7 @@ func (h *WebsocketController) Websocket(w http.ResponseWriter, req *http.Request
 
 	conn, err := h.upgrader.Upgrade(w, req, nil)
 	if err != nil {
+		log.Errorln("error upgrading websocket:", err)
 		apihelpers.Respond(w, http.StatusInternalServerError, nil, "", apiErrors.ErrGeneric.Error())
 		return
 	}
@@ -79,4 +86,7 @@ func (h *WebsocketController) Websocket(w http.ResponseWriter, req *http.Request
 
 	go h.apiWebsocket.ReadPump(userID, subscribstion)
 	go h.apiWebsocket.WritePump(subscribstion.Conn)
+	if err := apihelpers.Respond(w, http.StatusOK, nil, "Websocket Connected", ""); err != nil {
+		log.Errorln("error responding:", err)
+	}
 }

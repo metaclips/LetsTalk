@@ -38,6 +38,7 @@ type gorrilaWebsocket struct {
 var _ WSInterface = &gorrilaWebsocket{}
 
 func NewGorillaWebsocket(peerconnection peerconnection.PeerInterface, roomRequest models.RoomRequest, messages models.Messages, user models.User, room models.Room) WSInterface {
+
 	hub := &hub{
 		broadcast:  make(chan wsMessage),
 		register:   make(chan Subscription),

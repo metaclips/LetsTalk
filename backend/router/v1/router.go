@@ -85,6 +85,7 @@ func StartV1() {
 		Handler: handler,
 	}
 
+	log.Infoln("Started Webserver")
 	go func() {
 		if err := StartRouter(&srv); err != nil {
 			panic(err)
@@ -129,7 +130,7 @@ func NewRouter(home *v1controller.HomepageController, login *v1controller.LoginC
 // Starts httprouter on designated port.
 // This is a blocking function.
 func StartRouter(server *http.Server) error {
-
+	log.Infoln(apihelper.Config.TLS.CertPath != "" && apihelper.Config.TLS.KeyPath != "")
 	// Optional use of TLS due to Heroku serving TLS at low level.
 	if apihelper.Config.TLS.CertPath != "" && apihelper.Config.TLS.KeyPath != "" {
 		if err := server.ListenAndServeTLS(apihelper.Config.TLS.CertPath, apihelper.Config.TLS.KeyPath); err != nil {
@@ -137,6 +138,7 @@ func StartRouter(server *http.Server) error {
 		}
 	}
 
+	log.Infoln(apihelper.Config.TLS.CertPath != "" && apihelper.Config.TLS.KeyPath != "")
 	// Note: without HTTPS users wont be able to login as SetCookie uses Secure flag.
 	if err := server.ListenAndServe(); err != nil {
 		return err
