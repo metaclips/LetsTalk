@@ -56,7 +56,7 @@ func (h *WebsocketController) Websocket(w http.ResponseWriter, req *http.Request
 
 	user, err := h.user.GetUserByUUID(h.ctx, ticket)
 	if err != nil {
-		log.Errorln("error getting user details using UUID:", err)
+		log.Errorln("error getting user details using UUID:", err, ticket, userID)
 		status, errVal := getStatusAndErr(err)
 		apihelpers.Respond(w, status, nil, "", errVal)
 		return
@@ -89,4 +89,5 @@ func (h *WebsocketController) Websocket(w http.ResponseWriter, req *http.Request
 	if err := apihelpers.Respond(w, http.StatusOK, nil, "Websocket Connected", ""); err != nil {
 		log.Errorln("error responding:", err)
 	}
+	log.Infoln("user connected:", userID)
 }

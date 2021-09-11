@@ -123,6 +123,7 @@ func (h *gorrilaWebsocket) run() {
 func (h *gorrilaWebsocket) WritePump(conn *Connection) {
 	ticker := time.NewTicker(constants.PingPeriod)
 	defer func() {
+		log.Infoln("Websocket closed")
 		ticker.Stop()
 		conn.WS.Close()
 	}()
@@ -132,11 +133,13 @@ func (h *gorrilaWebsocket) WritePump(conn *Connection) {
 		case message, ok := <-conn.Send:
 			// Send channel has been closed
 			if !ok {
+				log.Infoln("websocket closed")
 				h.write(websocket.CloseMessage, []byte{}, conn.WS)
 				return
 			}
 
 			if err := h.write(websocket.TextMessage, message, conn.WS); err != nil {
+				log.Errorln("Websocket write failed:", err)
 				return
 			}
 
@@ -151,6 +154,7 @@ func (h *gorrilaWebsocket) WritePump(conn *Connection) {
 // write writes a message with the given message type and payload.
 func (h *gorrilaWebsocket) write(mt int, payload []byte, ws *websocket.Conn) error {
 	if err := ws.SetWriteDeadline(time.Now().Add(constants.WriteWait)); err != nil {
+		log.Errorln("error writing with deadline:", err)
 		return err
 	}
 
@@ -162,6 +166,7 @@ func (h *gorrilaWebsocket) ReadPump(userID primitive.ObjectID, session Subscript
 	c := session.Conn
 
 	defer func() {
+		log.Infoln("read pump closed")
 		h.hub.unRegister <- session
 		c.WS.Close()
 	}()
@@ -177,6 +182,7 @@ func (h *gorrilaWebsocket) ReadPump(userID primitive.ObjectID, session Subscript
 	for {
 		_, msg, err := c.WS.ReadMessage()
 		if err != nil {
+			log.Errorln("read message failed:", err)
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway) {
 				log.Errorln("error: ", err)
 			}
@@ -194,6 +200,9 @@ func (h *gorrilaWebsocket) ReadPump(userID primitive.ObjectID, session Subscript
 			log.Println("could not unmarshal json")
 			continue
 		}
+
+		// ToDO: Please remove
+		log.Traceln("Received messaged")
 
 		switch data.MsgType {
 		// TODO: add support to remove message.
