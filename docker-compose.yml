@@ -4,8 +4,6 @@ services:
     go-app:
         build: .
         container_name: letstalk
-        depends_on:
-            - 'mongo'
         environment:
             - PORT=8080
         ports:
