@@ -98,19 +98,23 @@ func (h *gorrilaWebsocket) run() {
 				go h.broadcastOnlineStatusToAllUserRoom(s.UserID, false)
 				log.Infoln(s.UserID, "offline")
 			}
+			log.Traceln("User to be unregistered already unregistered")
 			h.hub.users.mutex.Unlock()
 
 		case m := <-h.hub.broadcast:
+			log.Traceln("about to broadcast to user")
 			h.hub.users.mutex.RLock()
 			connection, exist := h.hub.users.roomUsers[m.user]
 			if !exist {
 				log.Errorln("ws conn closed and message broadcasted:", m.user)
+				h.hub.users.mutex.RUnlock()
 				continue
 			}
 
 			select {
 			case connection.Send <- m.data:
 			default:
+				log.Traceln("Closed websocket message as could not send message")
 				connection.WS.Close()
 				delete(h.hub.users.roomUsers, m.user)
 				go h.broadcastOnlineStatusToAllUserRoom(m.user, false)
