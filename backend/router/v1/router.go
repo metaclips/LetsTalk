@@ -84,7 +84,7 @@ func StartV1() {
 		Handler: handler,
 	}
 
-	log.Infoln("Started Webserver")
+	log.Infoln("Started Webserver On Port", port)
 	go func() {
 		if err := StartRouter(&srv); err != nil {
 			panic(err)

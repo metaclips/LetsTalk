@@ -86,8 +86,5 @@ func (h *WebsocketController) Websocket(w http.ResponseWriter, req *http.Request
 
 	go h.apiWebsocket.ReadPump(userID, subscribstion)
 	go h.apiWebsocket.WritePump(subscribstion.Conn)
-	if err := apihelpers.Respond(w, http.StatusOK, nil, "Websocket Connected", ""); err != nil {
-		log.Errorln("error responding:", err)
-	}
 	log.Infoln("user connected:", userID)
 }
