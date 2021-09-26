@@ -75,6 +75,7 @@ func StartV1() {
 	}
 
 	handler := cors.New(cors.Options{
+		AllowedOrigins: apihelper.Config.CorsAllowedOrigins,
 		AllowedMethods: []string{"GET", "POST"},
 		AllowedHeaders: []string{"Content-Type"},
 	}).Handler(router)

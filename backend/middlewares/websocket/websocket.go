@@ -148,9 +148,9 @@ func (h *gorrilaWebsocket) WritePump(conn *Connection) {
 			}
 
 		case <-ticker.C:
-			// if err := h.write(websocket.PingMessage, []byte{}, conn.WS); err != nil {
-			// 	return
-			// }
+			if err := h.write(websocket.PingMessage, []byte{}, conn.WS); err != nil {
+				return
+			}
 		}
 	}
 }
@@ -234,21 +234,6 @@ func (h *gorrilaWebsocket) ReadPump(userID primitive.ObjectID, session Subscript
 		case constants.SearchUserMsgType:
 			h.searchUsers(data.SearchText, session.UserID)
 
-		// case constants.NewFileUploadMsgType:
-		// 	h.newFileUpload(userID, msg)
-
-		// case constants.UploadFileChunkMsgType:
-		// 	msg.handleUploadFileChunk()
-
-		// case constants.UploadFileSuccessMsgType:
-		// 	msg.handleUploadFileUploadComplete()
-
-		// case constants.RequestDownloadMsgType:
-		// 	msg.handleRequestDownload(user)
-
-		// case constants.DownloadFileChunkMsgType:
-		// 	msg.handleFileDownload(user)
-
 		case constants.StartClassSession:
 			h.peerconnection.NewPublisherPeerConnection(userID, msg, h.onPC)
 
@@ -285,44 +270,6 @@ func (h *gorrilaWebsocket) onPC(data interface{}, roomID *primitive.ObjectID, us
 
 	return nil
 }
-
-// func (h Websocket) newFileUpload(user primitive.ObjectID, msg []byte) {
-// 	var fileData = v1resources.FileDetail{}
-// 	if err := unmarshalTo(msg, &fileData); err != nil {
-// 		// ToDo: Return error message.
-// 		return
-// 	}
-
-// 	if err := validation.ValidateInputs(fileData); err != nil {
-// 		// ToDo: Return error message.
-// 		return
-// 	}
-
-// 	if fileData.UserID != user {
-// 		// ToDo: Return error message.
-// 		return
-// 	}
-
-// 	// This tracks file status.
-// 	if err := h.file.CreateNewFile(h.ctx, &fileData); err != nil {
-// 		// ToDo: Return error message.
-// 		return
-// 	}
-
-// 	data := struct {
-// 		MsgType  string `json:"msgType"`
-// 		FileName string `json:"fileName,omitempty"`
-// 		FileHash string `json:"fileHash"`
-// 		Chunk    int    `json:"nextChunk"`
-// 	}{
-// 		constants.UploadFileChunkMsgType,
-// 		fileData.Name,
-// 		fileData.Hash,
-// 		1,
-// 	}
-
-// 	h.sendMessage(data, user)
-// }
 
 func (g *gorrilaWebsocket) loadUserContent(user primitive.ObjectID) {
 	acceptedRooms, err := g.roomRequest.RetrieveAcceptedJoinRequest(g.ctx, user, 0, 0)
@@ -461,11 +408,6 @@ func (h *gorrilaWebsocket) newMessage(userID primitive.ObjectID, msg []byte) {
 		// ToDo: Return error message.
 		return
 	}
-
-	// if message.Type == constants.MessageTypeFile && (message.SizeInKB == nil || message.Hash == "") {
-	// 	// ToDo: Return error message.
-	// 	return
-	// }
 
 	message.ID = primitive.NewObjectID()
 	message.CreatedAt = time.Now()

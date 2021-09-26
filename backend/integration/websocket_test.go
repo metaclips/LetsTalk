@@ -31,10 +31,10 @@ func TestCreateNewRoom(t *testing.T) {
 
 	msg := struct {
 		MsgType string `json:"msgType"`
-		v1resources.Room
+		Data    v1resources.Room
 	}{
 		MsgType: constants.CreateRoomMsgType,
-		Room: v1resources.Room{
+		Data: v1resources.Room{
 			CreateByUserID: userData.ID,
 			RoomName:       "My New Room",
 		},
@@ -47,7 +47,7 @@ func TestCreateNewRoom(t *testing.T) {
 	err = ws.ReadJSON(&result)
 	assert.NoError(t, err)
 
-	assert.Equal(t, msg.Room.RoomName, result.RoomName)
+	assert.Equal(t, msg.Data.RoomName, result.RoomName)
 
 	createRoomMsg := &v1resources.Message{}
 	err = ws.ReadJSON(createRoomMsg)
@@ -61,7 +61,7 @@ func TestCreateNewRoom(t *testing.T) {
 
 		hasCreatedRoom := false
 		for _, joinedRoom := range joinedRooms.Data {
-			if joinedRoom.RoomName == msg.RoomName {
+			if joinedRoom.RoomName == msg.Data.RoomName {
 				hasCreatedRoom = true
 			}
 		}
