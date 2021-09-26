@@ -31,10 +31,10 @@ func TestCreateNewRoom(t *testing.T) {
 
 	msg := struct {
 		MsgType string `json:"msgType"`
-		Data    v1resources.Room
+		v1resources.Room
 	}{
 		MsgType: constants.CreateRoomMsgType,
-		Data: v1resources.Room{
+		Room: v1resources.Room{
 			CreateByUserID: userData.ID,
 			RoomName:       "My New Room",
 		},
@@ -43,11 +43,14 @@ func TestCreateNewRoom(t *testing.T) {
 	err = ws.WriteJSON(msg)
 	assert.NoError(t, err)
 
-	result := v1resources.Room{}
+	result := struct {
+		MsgType string `json:"msgType"`
+		Data    v1resources.Room
+	}{}
 	err = ws.ReadJSON(&result)
 	assert.NoError(t, err)
 
-	assert.Equal(t, msg.Data.RoomName, result.RoomName)
+	assert.Equal(t, msg.RoomName, result.Data.RoomName)
 
 	createRoomMsg := &v1resources.Message{}
 	err = ws.ReadJSON(createRoomMsg)
@@ -61,7 +64,7 @@ func TestCreateNewRoom(t *testing.T) {
 
 		hasCreatedRoom := false
 		for _, joinedRoom := range joinedRooms.Data {
-			if joinedRoom.RoomName == msg.Data.RoomName {
+			if joinedRoom.RoomName == msg.RoomName {
 				hasCreatedRoom = true
 			}
 		}
@@ -107,7 +110,10 @@ func TestAcceptRoomRequest(t *testing.T) {
 	err = ws.WriteJSON(msg)
 	assert.NoError(t, err)
 
-	result := v1resources.Room{}
+	result := struct {
+		MsgType string `json:"msgType"`
+		Data    v1resources.Room
+	}{}
 	err = ws.ReadJSON(&result)
 	assert.NoError(t, err)
 
@@ -120,7 +126,7 @@ func TestAcceptRoomRequest(t *testing.T) {
 		JoinRoomRequest: v1resources.JoinRoomRequest{
 			UserID:       userData.ID,
 			UserToJoinID: userData2.ID,
-			RoomID:       result.ID,
+			RoomID:       result.Data.ID,
 			RoomName:     "My New Room",
 		},
 	}
@@ -128,7 +134,10 @@ func TestAcceptRoomRequest(t *testing.T) {
 	err = ws.WriteJSON(msg2)
 	assert.NoError(t, err)
 
-	requestNotif := v1resources.JoinRoomRequest{}
+	requestNotif := struct {
+		MsgType string `json:"msgType"`
+		Data    v1resources.JoinRoomRequest
+	}{}
 	err = ws2.ReadJSON(&requestNotif)
 	assert.NoError(t, err)
 
@@ -137,24 +146,31 @@ func TestAcceptRoomRequest(t *testing.T) {
 		v1resources.JoinRoomRequest
 	}{
 		MsgType:         constants.JoinRoomMsgType,
-		JoinRoomRequest: requestNotif,
+		JoinRoomRequest: requestNotif.Data,
 	}
 
 	err = ws2.WriteJSON(msg3)
 	assert.NoError(t, err)
 
-	newRoomNotif := &v1resources.Room{}
+	newRoomNotif := &struct {
+		MsgType string `json:"msgType"`
+		Data    v1resources.Room
+	}{}
 	err = ws2.ReadJSON(newRoomNotif)
 	assert.NoError(t, err)
 
 	assert.NotNil(t, newRoomNotif)
-	assert.Equal(t, "My New Room", newRoomNotif.RoomName)
+	assert.Equal(t, "My New Room", newRoomNotif.Data.RoomName)
+	t.Log(newRoomNotif)
 
-	roomMessage := &v1resources.Message{}
-	ws2.ReadJSON(roomMessage)
+	roomMessage := struct {
+		MsgType string `json:"msgType"`
+		Data    v1resources.Message
+	}{}
+	ws2.ReadJSON(&roomMessage)
 	assert.NotNil(t, roomMessage)
 
-	assert.Equal(t, fmt.Sprintf("%s %s (%s) has has joined the room.", userData2.FirstName, userData2.LastName, userData2.Email), roomMessage.Message)
+	assert.Equal(t, fmt.Sprintf("%s %s (%s) has has joined the room.", userData2.FirstName, userData2.LastName, userData2.Email), roomMessage.Data.Message)
 }
 
 func TestGetRoomRequestOnLogin(t *testing.T) {
