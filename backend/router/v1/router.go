@@ -75,11 +75,10 @@ func StartV1() {
 	}
 
 	handler := cors.New(cors.Options{
-		Debug:            true,
-		AllowCredentials: true,
-		AllowedOrigins:   apihelper.Config.CorsAllowedOrigins,
-		AllowedMethods:   []string{"GET", "POST"},
-		AllowedHeaders:   []string{"Content-Type"},
+		Debug:          true,
+		AllowedOrigins: []string{"*"},
+		AllowedMethods: []string{"GET", "POST"},
+		AllowedHeaders: []string{"Content-Type", "Access-Control-Allow-Origin", "Authorization"},
 	}).Handler(router)
 
 	srv := http.Server{
