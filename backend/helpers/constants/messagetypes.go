@@ -4,6 +4,7 @@ const (
 	UnauthorizedAcces             = "UnauthorizedAccess"
 	NewFileUploadMsgType          = "NewFileUpload"
 	NewMessageMsgType             = "NewMessage"
+	NewMessageTypeInfo            = "NewInfo"
 	RequestMessages               = "RequestMessages"
 	SearchUserMsgType             = "SearchUser"
 	StartClassSession             = "StartClassSession"

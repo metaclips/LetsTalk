@@ -418,6 +418,11 @@ func (h *gorrilaWebsocket) newMessage(userID primitive.ObjectID, msg []byte) {
 		return
 	}
 
+	if err := h.room.IncRoomMessageCount(h.ctx, message.RoomID); err != nil {
+		log.Errorln("error inc room message count:", err)
+		return
+	}
+
 	for _, user := range users {
 		// ToDo: Handle this error properly.
 		if err := h.sendMessage(map[string]interface{}{
@@ -682,12 +687,18 @@ func (h *gorrilaWebsocket) saveMessageAndNotifyRoom(roomID, userID primitive.Obj
 		RoomID:    roomID,
 		UserID:    userID,
 		Message:   message,
-		Type:      constants.NewMessageMsgType,
+		Type:      constants.NewMessageTypeInfo,
 		CreatedAt: time.Now(),
 	}
 
 	err := h.messages.NewMessage(h.ctx, &data)
 	if err != nil {
+		// ToDo: Return error message.
+		return
+	}
+
+	if err := h.room.IncRoomMessageCount(h.ctx, roomID); err != nil {
+		log.Errorln("error inc message count on info:", err)
 		// ToDo: Return error message.
 		return
 	}

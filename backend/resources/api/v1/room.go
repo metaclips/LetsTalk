@@ -57,6 +57,7 @@ type Room struct {
 	CreateByUserID primitive.ObjectID `json:"createByUserID" bson:"createByUserID"`
 	RoomName       string             `bson:"roomName" json:"roomName,omitempty" validate:"required"`
 	RoomIcon       string             `bson:"roomIcon" json:"roomIcon"`
+	MessageCount   int                `bson:"messageCount" json:"messageCount"`
 	CreatedAt      time.Time          `bson:"createdAt" json:"-"`
 	DeletedAt      *time.Time         `bson:"deletedAt" json:"-"`
 }
