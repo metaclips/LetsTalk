@@ -1,24 +1,39 @@
 package v1resources
 
 import (
+	"strings"
 	"time"
 
+	"github.com/metaclips/LetsTalk/backend/helpers/constants"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type UserRegistration struct {
-	Email        string     `bson:"email" json:"email" validate:"required,email"`
-	FirstName    string     `bson:"firstName" json:"firstName" validate:"required"`
-	LastName     string     `bson:"lastName" json:"lastName" validate:"required"`
-	MatricNumber string     `bson:"matricNumber" json:"matricNumber"`
-	Department   string     `bson:"department" json:"department" validate:"required"`
-	Faculty      string     `bson:"faculty" json:"faculty"`
-	Password     string     `bson:"-" json:"password" validate:"required"`
-	Year         int        `bson:"year" json:"year"`
-	IsStaff      bool       `bson:"isStaff" json:"isStaff"`
-	DOB          time.Time  `bson:"dob" json:"dob" validate:"required"`
-	CreatedAt    time.Time  `json:"createdAt" bson:"createdAt"`
-	DeletedAt    *time.Time `json:"deletedAt" bson:"deletedAt"`
+	Email        string             `bson:"email" json:"email" validate:"required,email"`
+	FirstName    string             `bson:"firstName" json:"firstName" validate:"required"`
+	LastName     string             `bson:"lastName" json:"lastName" validate:"required"`
+	MatricNumber string             `bson:"matricNumber" json:"matricNumber"`
+	Department   string             `bson:"department" json:"department" validate:"required"`
+	Faculty      string             `bson:"faculty" json:"faculty"`
+	Password     string             `bson:"-" json:"password" validate:"required"`
+	Year         int                `bson:"year" json:"year"`
+	IsStaff      bool               `bson:"isStaff" json:"isStaff"`
+	DOB          ModifiedTimeFormat `bson:"dob" json:"dob" validate:"required"`
+	CreatedAt    time.Time          `json:"createdAt" bson:"createdAt"`
+	DeletedAt    *time.Time         `json:"deletedAt" bson:"deletedAt"`
+}
+
+type ModifiedTimeFormat time.Time
+
+func (t *ModifiedTimeFormat) UnmarshalJSON(data []byte) error {
+	value := strings.Trim(string(data), "\"\\")
+	format, err := time.Parse(constants.DateOnly, value)
+	if err != nil {
+		return err
+	}
+
+	*t = ModifiedTimeFormat(format)
+	return nil
 }
 
 type UserLogin struct {

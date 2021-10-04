@@ -52,14 +52,6 @@ func (r *RegistrationController) RegisterUser(w http.ResponseWriter, req *http.R
 		return
 	}
 
-	var err error
-	registration.DOB, err = time.Parse(constants.DateOnly, registration.DOB.Format(constants.DateOnly))
-	if err != nil {
-		log.Errorln("error parsing users date of birth:", err)
-		apihelpers.Respond(w, http.StatusBadRequest, nil, "", api_errors.ErrInvalidDOB.Error())
-		return
-	}
-
 	// Ensure email address is a school email.
 	words := strings.Split(registration.Email, "@")
 	if len(words) < 2 {
@@ -74,14 +66,16 @@ func (r *RegistrationController) RegisterUser(w http.ResponseWriter, req *http.R
 		return
 	}
 
-	if _, ok := maps.Departments[registration.Department]; !ok {
-		apihelpers.Respond(w, http.StatusBadRequest, nil, "", "department not recognized")
-		return
-	}
+	if !registration.IsStaff {
+		if _, ok := maps.Departments[registration.Department]; !ok {
+			apihelpers.Respond(w, http.StatusBadRequest, nil, "", "department not recognized")
+			return
+		}
 
-	if _, ok := maps.Faculties[registration.Faculty]; !ok {
-		apihelpers.Respond(w, http.StatusBadRequest, nil, "", "faculty not recognized")
-		return
+		if _, ok := maps.Faculties[registration.Faculty]; !ok {
+			apihelpers.Respond(w, http.StatusBadRequest, nil, "", "faculty not recognized")
+			return
+		}
 	}
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(registration.Password), constants.BcryptCost)
@@ -96,7 +90,7 @@ func (r *RegistrationController) RegisterUser(w http.ResponseWriter, req *http.R
 		Email:      registration.Email,
 		FirstName:  registration.FirstName,
 		LastName:   registration.LastName,
-		DOB:        registration.DOB,
+		DOB:        time.Time(registration.DOB),
 		Password:   hashedPassword,
 		Department: registration.Department,
 		Faculty:    registration.Faculty,
@@ -110,15 +104,15 @@ func (r *RegistrationController) RegisterUser(w http.ResponseWriter, req *http.R
 		userData.MatricNumber = &registration.MatricNumber
 	}
 
-	if err := r.user.CreateUser(r.ctx, &userData); err != nil {
-		log.Errorln("error creating users:", err)
-		apihelpers.Respond(w, http.StatusInternalServerError, nil, "", api_errors.ErrGeneric.Error())
-		return
-	}
-
 	if err := r.mailer.MailTo(userData.Email, userData.UUID); err != nil {
 		log.Errorln("error sending verification email:", err)
 		apihelpers.Respond(w, http.StatusInternalServerError, nil, "", "error sending verification email")
+		return
+	}
+
+	if err := r.user.CreateUser(r.ctx, &userData); err != nil {
+		log.Errorln("error creating users:", err)
+		apihelpers.Respond(w, http.StatusInternalServerError, nil, "", api_errors.ErrGeneric.Error())
 		return
 	}
 

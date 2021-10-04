@@ -125,6 +125,9 @@ func NewRouter(home *v1controller.HomepageController, login *v1controller.LoginC
 	router.GET("/v1/home", home.HomePage)
 	router.GET("/v1/ws/:userID/:ticket", ws.Websocket)
 
+	router.GET("/v1/helpers/departments", v1controller.GetDepartments)
+	router.GET("/v1/helpers/faculties", v1controller.GetFaculties)
+
 	return router
 }
 
