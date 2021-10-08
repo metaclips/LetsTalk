@@ -41,3 +41,14 @@ func (m Messages) RetrieveMessagesForRoom(ctx context.Context, roomID primitive.
 		Count: count,
 	}, nil
 }
+
+func (m Messages) GetMessagePreview(ctx context.Context, roomID primitive.ObjectID) (*v1resources.Message, error) {
+	message := v1resources.Message{}
+	err := m.db.FindOne(ctx, bson.M{"roomID": roomID}, nil, &message)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &message, nil
+}

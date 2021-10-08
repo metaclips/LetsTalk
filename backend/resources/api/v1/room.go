@@ -7,21 +7,23 @@ import (
 )
 
 type JoinRoomRequest struct {
-	ID           primitive.ObjectID `bson:"_id" json:"_id"`
-	UserID       primitive.ObjectID `bson:"userID" json:"userID" validate:"required"`
-	UserToJoinID primitive.ObjectID `bson:"userToJoinID" json:"userToJoinID" validate:"required"`
-	RoomID       primitive.ObjectID `bson:"roomID" json:"roomID" validate:"required"`
-	RoomName     string             `bson:"roomName" json:"roomName" validate:"required"`
-	Accepted     bool               `json:"accepted" bson:"accepted"`
-	RejectRoom   bool               `json:"rejectRoom" bson:"rejectRoom"`
-	ExitedRoom   bool               `json:"exitedRoom" bson:"exitedRoom"`
-	CreatedAt    time.Time          `bson:"createdAt" json:"-"`
-	DeletedAt    *time.Time         `bson:"deletedAt" json:"-"`
+	ID             primitive.ObjectID `bson:"_id" json:"_id"`
+	UserID         primitive.ObjectID `bson:"userID" json:"userID" validate:"required"`
+	UserToJoinID   primitive.ObjectID `bson:"userToJoinID" json:"userToJoinID" validate:"required"`
+	RoomID         primitive.ObjectID `bson:"roomID" json:"roomID" validate:"required"`
+	RoomName       string             `bson:"roomName" json:"roomName" validate:"required"`
+	PreviewMessage string             `json:"previewMessage" bson:"-"`
+	Accepted       bool               `json:"accepted" bson:"accepted"`
+	RejectRoom     bool               `json:"rejectRoom" bson:"rejectRoom"`
+	ExitedRoom     bool               `json:"exitedRoom" bson:"exitedRoom"`
+	CreatedAt      time.Time          `bson:"createdAt" json:"-"`
+	DeletedAt      *time.Time         `bson:"deletedAt" json:"-"`
 }
 
 type GetJoinedRoomRequest struct {
-	RoomID   primitive.ObjectID `bson:"roomID" json:"roomID"`
-	RoomName string             `bson:"roomName" json:"roomName" validate:"required"`
+	RoomID         primitive.ObjectID `bson:"roomID" json:"roomID"`
+	RoomName       string             `bson:"roomName" json:"roomName" validate:"required"`
+	PreviewMessage string             `json:"previewMessage" bson:"-"`
 }
 
 type JoinRoomRequestList struct {

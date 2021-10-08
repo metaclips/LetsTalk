@@ -48,6 +48,17 @@ func (h *HomepageController) HomePage(w http.ResponseWriter, r *http.Request, _ 
 		return
 	}
 
+	for i, room := range joinedRooms.Data {
+		message, err := h.messages.GetMessagePreview(h.ctx, room.RoomID)
+		if err != nil {
+			log.Errorln("error getting message preview: ", err)
+			apihelpers.Respond(w, http.StatusInternalServerError, nil, "", api_errors.ErrGeneric.Error())
+			return
+		}
+
+		joinedRooms.Data[i].PreviewMessage = message.Message
+	}
+
 	toJoinRequest, err := h.roomRequest.RetrieveUnacceptedRooms(h.ctx, *ID, 0, 0)
 	if err != nil {
 		log.Errorln("error checking room requests: ", err)
