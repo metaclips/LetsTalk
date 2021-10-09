@@ -170,7 +170,7 @@ func TestAcceptRoomRequest(t *testing.T) {
 	ws2.ReadJSON(&roomMessage)
 	assert.NotNil(t, roomMessage)
 
-	assert.Equal(t, fmt.Sprintf("%s %s (%s) has has joined the room.", userData2.FirstName, userData2.LastName, userData2.Email), roomMessage.Data.Message)
+	assert.Equal(t, fmt.Sprintf("%s %s (%s) has joined the room.", userData2.FirstName, userData2.LastName, userData2.Email), roomMessage.Data.Message)
 }
 
 func TestGetRoomRequestOnLogin(t *testing.T) {

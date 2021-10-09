@@ -25,9 +25,9 @@ func (g *GoogleMailer) MailTo(email, uuid string) error {
 
 	m.SetBody("text/plain", fmt.Sprintf(
 		`Welcome to LetsTalk.
-		To verify your account, please click on the link provided.
-		https://link_to_url/verify/%s/%s`,
-		email, uuid,
+		Here's your ID to verify your account.
+		%s`,
+		uuid,
 	))
 
 	// Settings for SMTP server

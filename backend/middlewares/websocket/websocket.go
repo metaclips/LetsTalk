@@ -598,7 +598,7 @@ func (h *gorrilaWebsocket) acceptRoomRequest(userID primitive.ObjectID, msg []by
 		"data":    room,
 	}, userID)
 
-	h.saveMessageAndNotifyRoom(request.RoomID, request.UserToJoinID, fmt.Sprintf("%s %s (%s) has has joined the room.", userToJoin.FirstName, userToJoin.LastName, userToJoin.Email))
+	h.saveMessageAndNotifyRoom(request.RoomID, request.UserToJoinID, fmt.Sprintf("%s %s (%s) has joined the room.", userToJoin.FirstName, userToJoin.LastName, userToJoin.Email))
 }
 
 func (h *gorrilaWebsocket) createNewRoom(userID primitive.ObjectID, msg []byte) {
@@ -656,7 +656,7 @@ func (h *gorrilaWebsocket) createNewRoom(userID primitive.ObjectID, msg []byte) 
 		return
 	}
 
-	h.saveMessageAndNotifyRoom(room.ID, userID, fmt.Sprintf("%s %s (%s) has has joined the room.", userToJoin.FirstName, userToJoin.LastName, userToJoin.Email))
+	h.saveMessageAndNotifyRoom(room.ID, userID, fmt.Sprintf("%s %s (%s) has joined the room.", userToJoin.FirstName, userToJoin.LastName, userToJoin.Email))
 }
 
 func (h *gorrilaWebsocket) broadcastOnlineStatusToAllUserRoom(userID primitive.ObjectID, isOnline bool) {
