@@ -75,7 +75,7 @@ func (b *secureCookie) CheckCookie(ctx context.Context, r *http.Request, cookieN
 
 	// Validate
 	dbCookieData := cookieData{}
-	if err := b.db.FindOne(ctx, bson.M{"email": data.Email}, nil, &dbCookieData); err != nil {
+	if err := b.db.FindOne(ctx, bson.M{"email": data.Email}, nil, nil, &dbCookieData); err != nil {
 		return nil, err
 	}
 

@@ -10,7 +10,7 @@ type Database interface {
 	// Find content in DB by identifier.
 	FindByID(ctx context.Context, id interface{}, projection map[string]interface{}, result interface{}) error
 	// Find content with specified field.
-	FindOne(ctx context.Context, fields, projection map[string]interface{}, result interface{}) error
+	FindOne(ctx context.Context, fields, sort map[string]interface{}, projection map[string]interface{}, result interface{}) error
 	// Find many contents with specified fields.
 	FindMany(ctx context.Context, fields, projection, sort map[string]interface{}, limit, skip int64, results interface{}) error
 	// Update contents by ID.

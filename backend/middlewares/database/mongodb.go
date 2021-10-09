@@ -85,9 +85,10 @@ func (d *mongoDB) FindByID(ctx context.Context, id interface{}, projection map[s
 	return nil
 }
 
-func (d *mongoDB) FindOne(ctx context.Context, fields, projection map[string]interface{}, result interface{}) error {
+func (d *mongoDB) FindOne(ctx context.Context, fields, sort map[string]interface{}, projection map[string]interface{}, result interface{}) error {
 	ops := options.FindOne()
 	ops.Projection = projection
+	ops.SetSort(sort)
 
 	fields["deletedAt"] = nil
 

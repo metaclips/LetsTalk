@@ -40,7 +40,7 @@ func (u User) GetUserByID(ctx context.Context, ID primitive.ObjectID) (*v1resour
 
 func (u User) GetUserByUUID(ctx context.Context, uuid string) (*v1resources.UserData, error) {
 	user := v1resources.UserData{}
-	if err := u.db.FindOne(ctx, bson.M{"uuid": uuid}, nil, &user); err != nil {
+	if err := u.db.FindOne(ctx, bson.M{"uuid": uuid}, nil, nil, &user); err != nil {
 		return nil, err
 	}
 
@@ -49,7 +49,7 @@ func (u User) GetUserByUUID(ctx context.Context, uuid string) (*v1resources.User
 
 func (u User) GetRegisteredMinors(ctx context.Context) (*v1resources.PrunedUserList, error) {
 	user := []v1resources.PrunedUser{}
-	if err := u.db.FindOne(ctx, bson.M{"dob": bson.M{"$gt": time.Now().Add(-(time.Hour * 365 * 24) - time.Hour)}}, nil, &user); err != nil {
+	if err := u.db.FindOne(ctx, bson.M{"dob": bson.M{"$gt": time.Now().Add(-(time.Hour * 365 * 24) - time.Hour)}}, nil, nil, &user); err != nil {
 		return nil, err
 	}
 
@@ -80,7 +80,7 @@ func (u User) GetUsersPrunedData(ctx context.Context, paging *paging.Paging) (*v
 
 func (u User) GetUserByEmail(ctx context.Context, email string) (*v1resources.UserData, error) {
 	user := v1resources.UserData{}
-	if err := u.db.FindOne(ctx, bson.M{"email": email}, nil, &user); err != nil {
+	if err := u.db.FindOne(ctx, bson.M{"email": email}, nil, nil, &user); err != nil {
 		return nil, err
 	}
 

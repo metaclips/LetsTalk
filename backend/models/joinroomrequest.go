@@ -82,7 +82,7 @@ func (b RoomRequest) GetUserAssociates(ctx context.Context, userID primitive.Obj
 func (b RoomRequest) IsRequesterAllowedInRoom(ctx context.Context, roomID, userID primitive.ObjectID) (bool, error) {
 	var room *v1resources.JoinRoomRequest
 
-	if err := b.db.FindOne(ctx, bson.M{"roomID": roomID, "userID": userID}, nil, &room); err != nil && err != mongo.ErrNoDocuments {
+	if err := b.db.FindOne(ctx, bson.M{"roomID": roomID, "userID": userID}, nil, nil, &room); err != nil && err != mongo.ErrNoDocuments {
 		return false, err
 	}
 
@@ -92,7 +92,7 @@ func (b RoomRequest) IsRequesterAllowedInRoom(ctx context.Context, roomID, userI
 func (b RoomRequest) IsUserAllowedInRoom(ctx context.Context, roomID, userToJoinID primitive.ObjectID) (bool, error) {
 	var room *v1resources.JoinRoomRequest
 
-	if err := b.db.FindOne(ctx, bson.M{"roomID": roomID, "userToJoinID": userToJoinID}, nil, &room); err != nil && err != mongo.ErrNoDocuments {
+	if err := b.db.FindOne(ctx, bson.M{"roomID": roomID, "userToJoinID": userToJoinID}, nil, nil, &room); err != nil && err != mongo.ErrNoDocuments {
 		return false, err
 	}
 
@@ -102,7 +102,7 @@ func (b RoomRequest) IsUserAllowedInRoom(ctx context.Context, roomID, userToJoin
 func (b RoomRequest) HasUserAcceptedJoinRequest(ctx context.Context, userID, roomID primitive.ObjectID) (bool, error) {
 	var room *v1resources.JoinRoomRequest
 
-	if err := b.db.FindOne(ctx, bson.M{"roomID": roomID, "userToJoinID": userID}, nil, &room); err != nil && err != mongo.ErrNoDocuments {
+	if err := b.db.FindOne(ctx, bson.M{"roomID": roomID, "userToJoinID": userID}, nil, nil, &room); err != nil && err != mongo.ErrNoDocuments {
 		return false, err
 	}
 
