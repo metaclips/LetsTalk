@@ -67,14 +67,14 @@ func (u User) GetRegisteredMinors(ctx context.Context) (*v1resources.PrunedUserL
 func (u User) GetUsersPrunedData(ctx context.Context, paging *paging.Paging) (*v1resources.PrunedUserList, error) {
 	users := make([]v1resources.PrunedUser, 0)
 
-	count, err := paging.PagedRequest(ctx, nil, u.db, &users)
+	err := u.db.FindMany(ctx, bson.M{"email": bson.M{"$regex": primitive.Regex{Pattern: paging.Search}}}, nil, nil, int64(paging.Limit), int64(paging.Skip), &users)
 	if err != nil {
 		return nil, err
 	}
 
 	return &v1resources.PrunedUserList{
 		Data:  users,
-		Count: count,
+		Count: len(users),
 	}, nil
 }
 
