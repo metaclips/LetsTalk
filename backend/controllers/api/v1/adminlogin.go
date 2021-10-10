@@ -150,18 +150,18 @@ func (l *LoginController) AdminUnbanUser(w http.ResponseWriter, req *http.Reques
 }
 
 func (l *LoginController) AdminGetBannedUsers(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
-	paging := &paging.Paging{}
-	if err := json.NewDecoder(req.Body).Decode(paging); err != nil {
+	page := &paging.Paging{}
+	if err := json.NewDecoder(req.Body).Decode(page); err != nil {
 		log.WithError(err).Error("error decoding unban data")
 		apihelpers.Respond(w, http.StatusInternalServerError, nil, "", api_errors.ErrGeneric.Error())
 		return
 	}
 
-	if paging.Limit == 0 {
-		paging.Limit = 20
+	if page.Limit == 0 {
+		page.Limit = 20
 	}
 
-	bannedUsers, err := l.user.GetUsers(l.ctx, paging, bson.M{"isBanned": true})
+	bannedUsers, err := l.user.GetUsers(l.ctx, page, bson.M{"isBanned": true})
 	if err != nil {
 		log.WithError(err).Error("failed to fetch banned users")
 		apihelpers.Respond(w, http.StatusInternalServerError, nil, "", api_errors.ErrGeneric.Error())
@@ -169,4 +169,27 @@ func (l *LoginController) AdminGetBannedUsers(w http.ResponseWriter, req *http.R
 	}
 
 	apihelpers.Respond(w, http.StatusOK, bannedUsers, "fetched banned users successfully", "")
+}
+
+func (l *LoginController) AdminGetUserByEmail(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+	userEmail := &unbanUser{}
+	if err := json.NewDecoder(req.Body).Decode(userEmail); err != nil {
+		log.WithError(err).Error("error decoding user email data")
+		apihelpers.Respond(w, http.StatusInternalServerError, nil, "", api_errors.ErrGeneric.Error())
+		return
+	}
+
+	if userEmail.Email == "" {
+		apihelpers.Respond(w, http.StatusBadRequest, nil, "", "provide a user email")
+		return
+	}
+
+	user, err := l.user.GetUserByEmail(l.ctx, userEmail.Email)
+	if err != nil {
+		log.WithError(err).Error("failed to fetch user")
+		apihelpers.Respond(w, http.StatusInternalServerError, nil, "", api_errors.ErrGeneric.Error())
+		return
+	}
+
+	apihelpers.Respond(w, http.StatusOK, user, "fetched user successfully", "")
 }
