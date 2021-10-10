@@ -4,9 +4,7 @@ import (
 	"context"
 
 	"github.com/metaclips/LetsTalk/backend/middlewares/database"
-	v1resources "github.com/metaclips/LetsTalk/backend/resources/api/v1"
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type Paging struct {
@@ -16,15 +14,12 @@ type Paging struct {
 }
 
 func (p *Paging) PagedRequest(ctx context.Context, fields bson.M, store database.Database, data interface{}) (int, error) {
-
-	dd := []v1resources.PrunedUser{}
-
-	err := store.FindMany(ctx, bson.M{"email": bson.M{"$regex": primitive.Regex{Pattern: "/150/"}}}, nil, nil, int64(p.Limit), int64(p.Skip), &dd)
+	err := store.FindMany(ctx, fields, nil, bson.M{"_id": -1}, int64(p.Limit), int64(p.Skip), data)
 	if err != nil {
 		return 0, err
 	}
 
-	count, err := store.Count(ctx, bson.M{"email": bson.M{"$regex": primitive.Regex{Pattern: "/150/"}}})
+	count, err := store.Count(ctx, fields)
 	if err != nil {
 		return 0, err
 	}

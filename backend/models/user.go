@@ -94,6 +94,15 @@ func (u User) GetUsersPrunedData(ctx context.Context, paging *paging.Paging) (*v
 	}, nil
 }
 
+func (u User) GetUsers(ctx context.Context, paging *paging.Paging, fields bson.M) ([]v1resources.UserData, error) {
+	bannedUsers := []v1resources.UserData{}
+	_, err := paging.PagedRequest(ctx, fields, u.db, &bannedUsers)
+	if err != nil {
+		return nil, err
+	}
+	return bannedUsers, nil
+}
+
 func (u User) GetUserByEmail(ctx context.Context, email string) (*v1resources.UserData, error) {
 	user := v1resources.UserData{}
 	if err := u.db.FindOne(ctx, bson.M{"email": email}, nil, nil, &user); err != nil {

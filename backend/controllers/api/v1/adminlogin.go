@@ -5,10 +5,13 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"go.mongodb.org/mongo-driver/bson"
+
 	"github.com/julienschmidt/httprouter"
 	apihelpers "github.com/metaclips/LetsTalk/backend/apihelper"
 	"github.com/metaclips/LetsTalk/backend/helpers/constants"
 	api_errors "github.com/metaclips/LetsTalk/backend/helpers/errors"
+	"github.com/metaclips/LetsTalk/backend/helpers/paging"
 	"github.com/metaclips/LetsTalk/backend/helpers/validation"
 	app_context "github.com/metaclips/LetsTalk/backend/middlewares/context"
 	"github.com/metaclips/LetsTalk/backend/middlewares/cookies"
@@ -106,7 +109,7 @@ func (l *LoginController) AdminBanUser(w http.ResponseWriter, req *http.Request,
 		return
 	}
 
-	apihelpers.Respond(w, http.StatusOK, nil, "banned user successfully", "")
+	apihelpers.Respond(w, http.StatusOK, user, "banned user successfully", "")
 }
 
 type unbanUser struct {
@@ -143,5 +146,27 @@ func (l *LoginController) AdminUnbanUser(w http.ResponseWriter, req *http.Reques
 		return
 	}
 
-	apihelpers.Respond(w, http.StatusOK, nil, "unbanned user successfully", "")
+	apihelpers.Respond(w, http.StatusOK, user, "unbanned user successfully", "")
+}
+
+func (l *LoginController) AdminGetBannedUsers(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+	paging := &paging.Paging{}
+	if err := json.NewDecoder(req.Body).Decode(paging); err != nil {
+		log.WithError(err).Error("error decoding unban data")
+		apihelpers.Respond(w, http.StatusInternalServerError, nil, "", api_errors.ErrGeneric.Error())
+		return
+	}
+
+	if paging.Limit == 0 {
+		paging.Limit = 20
+	}
+
+	bannedUsers, err := l.user.GetUsers(l.ctx, paging, bson.M{"isBanned": true})
+	if err != nil {
+		log.WithError(err).Error("failed to fetch banned users")
+		apihelpers.Respond(w, http.StatusInternalServerError, nil, "", api_errors.ErrGeneric.Error())
+		return
+	}
+
+	apihelpers.Respond(w, http.StatusOK, bannedUsers, "fetched banned users successfully", "")
 }
