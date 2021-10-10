@@ -72,20 +72,26 @@ func (l *LoginController) AdminLogin(w http.ResponseWriter, req *http.Request, _
 	}, "successful login", "")
 }
 
+type banUser struct {
+	Email        string `json:"email"`
+	ReasonBanned string `json:"reasonBanned"`
+}
+
+// TODO(metaclips): send reason banned to all the groups the user is in
 func (l *LoginController) AdminBanUser(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
-	userEmail := &v1resources.UserLogin{}
-	if err := json.NewDecoder(req.Body).Decode(userEmail); err != nil {
-		log.Errorln("error decoding login data: ", err)
+	banUser := &banUser{}
+	if err := json.NewDecoder(req.Body).Decode(banUser); err != nil {
+		log.Errorln("error decoding ban data: ", err)
 		apihelpers.Respond(w, http.StatusInternalServerError, nil, "", api_errors.ErrGeneric.Error())
 		return
 	}
 
-	if userEmail.Email == "" {
+	if banUser.Email == "" {
 		apihelpers.Respond(w, http.StatusBadRequest, nil, "", "provide a user email")
 		return
 	}
 
-	user, err := l.user.GetUserByEmail(l.ctx, userEmail.Email)
+	user, err := l.user.GetUserByEmail(l.ctx, banUser.Email)
 	if err != nil {
 		log.WithError(err).Error("failed to fetch user")
 		apihelpers.Respond(w, http.StatusInternalServerError, nil, "", api_errors.ErrGeneric.Error())
@@ -100,5 +106,42 @@ func (l *LoginController) AdminBanUser(w http.ResponseWriter, req *http.Request,
 		return
 	}
 
-	apihelpers.Respond(w, http.StatusOK, nil, "banned user successfuly", "")
+	apihelpers.Respond(w, http.StatusOK, nil, "banned user successfully", "")
+}
+
+type unbanUser struct {
+	Email          string `json:"email"`
+	ReasonUnbanned string `json:"reasonBanned"`
+}
+
+// TODO(metaclips): send reason unbanned to all the groups the user is in
+func (l *LoginController) AdminUnbanUser(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+	unbanUser := &unbanUser{}
+	if err := json.NewDecoder(req.Body).Decode(unbanUser); err != nil {
+		log.WithError(err).Error("error decoding unban data")
+		apihelpers.Respond(w, http.StatusInternalServerError, nil, "", api_errors.ErrGeneric.Error())
+		return
+	}
+
+	if unbanUser.Email == "" || unbanUser.ReasonUnbanned == "" {
+		apihelpers.Respond(w, http.StatusBadRequest, nil, "", "user email and reason unbanned are required")
+		return
+	}
+
+	user, err := l.user.GetUserByEmail(l.ctx, unbanUser.Email)
+	if err != nil {
+		log.WithError(err).Error("failed to fetch user")
+		apihelpers.Respond(w, http.StatusInternalServerError, nil, "", api_errors.ErrGeneric.Error())
+		return
+	}
+
+	user.IsBanned = false
+	err = l.user.UpdateUser(l.ctx, user)
+	if err != nil {
+		log.WithError(err).Error("failed to unban user")
+		apihelpers.Respond(w, http.StatusInternalServerError, nil, "", api_errors.ErrGeneric.Error())
+		return
+	}
+
+	apihelpers.Respond(w, http.StatusOK, nil, "unbanned user successfully", "")
 }
