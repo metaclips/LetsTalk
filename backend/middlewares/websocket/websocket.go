@@ -278,10 +278,13 @@ func (g *gorrilaWebsocket) loadUserContent(user primitive.ObjectID) {
 		return
 	}
 
-	joinedRoomList, err := g.room.RetrieveJoinedRooms(g.ctx, acceptedRooms.Data, 0, 0)
-	if err != nil {
-		log.Errorln("error checking joined room: ", err)
-		return
+	var joinedRoomList *v1resources.RoomList
+	if acceptedRooms.Count != 0 {
+		joinedRoomList, err = g.room.RetrieveJoinedRooms(g.ctx, acceptedRooms.Data, 0, 0)
+		if err != nil {
+			log.Errorln("error checking joined room: ", err)
+			return
+		}
 	}
 
 	userAssociates, err := g.roomRequest.GetUserAssociates(g.ctx, user)
@@ -318,14 +321,16 @@ func (g *gorrilaWebsocket) loadUserContent(user primitive.ObjectID) {
 		return
 	}
 
-	for i, room := range joinedRoomList.Data {
-		message, err := g.messages.GetMessagePreview(g.ctx, room.ID)
-		if err != nil {
-			log.Errorln("error getting message preview: ", err)
-			return
-		}
+	if joinedRoomList != nil {
+		for i, room := range joinedRoomList.Data {
+			message, err := g.messages.GetMessagePreview(g.ctx, room.ID)
+			if err != nil {
+				log.Errorln("error getting message preview: ", err)
+				return
+			}
 
-		joinedRoomList.Data[i].PreviewMessage = message.Message
+			joinedRoomList.Data[i].PreviewMessage = message.Message
+		}
 	}
 
 	// Broadcast to user that is to join, that there's a request.
@@ -555,19 +560,20 @@ func (h *gorrilaWebsocket) joinRoomRequest(userID primitive.ObjectID, msg []byte
 		return
 	}
 
-	request.Accepted = false
-	request.ExitedRoom = false
-	request.ID = primitive.NewObjectID()
-	request.CreatedAt = time.Now()
-
-	if err := h.roomRequest.NewRoomRequest(h.ctx, &request); err != nil {
-		log.Errorln("error creating room request:", err)
+	requester, err := h.user.GetUserByID(h.ctx, request.UserID)
+	if err != nil {
 		// ToDo: Return error message.
 		return
 	}
 
-	requester, err := h.user.GetUserByID(h.ctx, request.UserID)
-	if err != nil {
+	request.Accepted = false
+	request.ExitedRoom = false
+	request.ID = primitive.NewObjectID()
+	request.CreatedAt = time.Now()
+	request.CreatedByUserDetails = fmt.Sprintf("%s %s [ %s ]", requester.FirstName, requester.LastName, requester.Email)
+
+	if err := h.roomRequest.NewRoomRequest(h.ctx, &request); err != nil {
+		log.Errorln("error creating room request:", err)
 		// ToDo: Return error message.
 		return
 	}

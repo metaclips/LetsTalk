@@ -43,15 +43,15 @@ type UserLogin struct {
 }
 
 type PrunedUser struct {
-	ID        primitive.ObjectID `bson:"_id" json:"-"`
+	ID        primitive.ObjectID `bson:"_id" json:"_id"`
 	Email     string             `bson:"email" json:"email"`
 	FirstName string             `bson:"firstName" json:"firstName"`
 	LastName  string             `bson:"lastName" json:"lastName"`
 }
 
 type PrunedUserList struct {
-	Data  []PrunedUser
-	Count int
+	Data  []PrunedUser `json:"data"`
+	Count int          `json:"count"`
 }
 
 type UserStatus struct {

@@ -35,6 +35,10 @@ func (u User) GetManyAssociates(ctx context.Context, associates []primitive.Obje
 		data[i] = bson.M{"_id": associate}
 	}
 
+	if len(data) == 0 || data == nil {
+		return []v1resources.AssociateData{}, nil
+	}
+
 	val := []v1resources.AssociateData{}
 
 	err := u.db.FindMany(ctx, bson.M{"$or": data}, nil, nil, 0, 0, &val)
@@ -103,7 +107,7 @@ func (u User) GetRegisteredMinors(ctx context.Context, paging *paging.Paging) (*
 func (u User) GetUsersPrunedData(ctx context.Context, paging *paging.Paging) (*v1resources.PrunedUserList, error) {
 	users := make([]v1resources.PrunedUser, 0)
 
-	err := u.db.FindMany(ctx, bson.M{"email": bson.M{"$regex": primitive.Regex{Pattern: "003"}}}, nil, nil, 0, 0, &users)
+	err := u.db.FindMany(ctx, bson.M{"email": bson.M{"$regex": primitive.Regex{Pattern: paging.Search}}}, nil, nil, int64(paging.Limit), int64(paging.Skip), &users)
 	if err != nil {
 		return nil, err
 	}

@@ -59,6 +59,10 @@ func (b RoomRequest) GetUserAssociates(ctx context.Context, userID primitive.Obj
 		return nil, err
 	}
 
+	if rooms == nil {
+		return []primitive.ObjectID{}, nil
+	}
+
 	associates := make(map[primitive.ObjectID]bool)
 	roomsBSON := make([]bson.M, len(rooms))
 

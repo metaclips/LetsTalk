@@ -283,6 +283,11 @@ func (p *peerConnection) NewSubscriberPeerConnection(userID primitive.ObjectID, 
 
 	sessionID := sdp.ClassSessionID
 
+	if sessionID == "" {
+		// TODO: Return error
+		return
+	}
+
 	p.peerConnectionsMutex.Lock()
 	if p.peerConnections[userID] != nil {
 		p.peerConnectionsMutex.Unlock()
