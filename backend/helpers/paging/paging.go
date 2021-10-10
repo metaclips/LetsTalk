@@ -8,8 +8,8 @@ import (
 )
 
 type Paging struct {
-	Limit  int    `json:"limit" bson:"limit" validate:"required,min=0,max=30"`
-	Skip   int    `json:"skip" bson:"skip" validate:"required,min=0"`
+	Limit  uint   `json:"limit" bson:"limit" validate:"required,min=0,max=30"`
+	Skip   uint   `json:"skip" bson:"skip" validate:"required,min=0"`
 	Search string `json:"search" bson:"search"`
 }
 

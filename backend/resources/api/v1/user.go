@@ -78,6 +78,11 @@ type UserData struct {
 	DeletedAt    *time.Time         `bson:"deletedAt" json:"-"`
 }
 
+type UserDataList struct {
+	Data  []UserData
+	Count int
+}
+
 type AssociateData struct {
 	ID        primitive.ObjectID `bson:"_id" json:"_id"`
 	FirstName string             `bson:"firstName" json:"firstName"`

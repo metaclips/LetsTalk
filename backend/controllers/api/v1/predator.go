@@ -24,7 +24,7 @@ func NewPredatorController(checkChannel chan struct{}, user models.User, message
 		ticker := time.NewTicker(time.Hour * 24)
 
 		callBack := func() {
-			users, err := user.GetRegisteredMinors(ctx)
+			users, err := user.GetRegisteredMinorsPruned(ctx)
 			if err != nil {
 				log.Errorln("error getting registered minors:", err)
 				return

@@ -152,7 +152,7 @@ func (l *LoginController) AdminUnbanUser(w http.ResponseWriter, req *http.Reques
 func (l *LoginController) AdminGetBannedUsers(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
 	page := &paging.Paging{}
 	if err := json.NewDecoder(req.Body).Decode(page); err != nil {
-		log.WithError(err).Error("error decoding unban data")
+		log.WithError(err).Error("error decoding page data")
 		apihelpers.Respond(w, http.StatusInternalServerError, nil, "", api_errors.ErrGeneric.Error())
 		return
 	}
@@ -192,4 +192,26 @@ func (l *LoginController) AdminGetUserByEmail(w http.ResponseWriter, req *http.R
 	}
 
 	apihelpers.Respond(w, http.StatusOK, user, "fetched user successfully", "")
+}
+
+func (l *LoginController) AdminGetMinorUsers(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+	page := &paging.Paging{}
+	if err := json.NewDecoder(req.Body).Decode(page); err != nil {
+		log.WithError(err).Error("error decoding page data")
+		apihelpers.Respond(w, http.StatusInternalServerError, nil, "", api_errors.ErrGeneric.Error())
+		return
+	}
+
+	if page.Limit == 0 {
+		page.Limit = 20
+	}
+
+	bannedUsers, err := l.user.GetRegisteredMinors(l.ctx, page)
+	if err != nil {
+		log.WithError(err).Error("failed to fetch minor users")
+		apihelpers.Respond(w, http.StatusInternalServerError, nil, "", api_errors.ErrGeneric.Error())
+		return
+	}
+
+	apihelpers.Respond(w, http.StatusOK, bannedUsers, "fetched minor users successfully", "")
 }
