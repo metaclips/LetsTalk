@@ -72,6 +72,7 @@ type UserData struct {
 	Year         int                `bson:"year" json:"year"`
 	Password     []byte             `bson:"password" json:"-"`
 	DOB          time.Time          `bson:"dob" json:"dob"`
+	IsBanned     bool               `json:"isBanned" bson:"isBanned"`
 	MatricNumber *string            `bson:"matricNumber" json:"matricNumber"`
 	CreatedAt    time.Time          `bson:"createdAt" json:"-"`
 	DeletedAt    *time.Time         `bson:"deletedAt" json:"-"`

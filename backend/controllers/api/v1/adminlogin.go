@@ -71,3 +71,34 @@ func (l *LoginController) AdminLogin(w http.ResponseWriter, req *http.Request, _
 		UserID: id,
 	}, "successful login", "")
 }
+
+func (l *LoginController) AdminBanUser(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+	userEmail := &v1resources.UserLogin{}
+	if err := json.NewDecoder(req.Body).Decode(userEmail); err != nil {
+		log.Errorln("error decoding login data: ", err)
+		apihelpers.Respond(w, http.StatusInternalServerError, nil, "", api_errors.ErrGeneric.Error())
+		return
+	}
+
+	if userEmail.Email == "" {
+		apihelpers.Respond(w, http.StatusBadRequest, nil, "", "provide a user email")
+		return
+	}
+
+	user, err := l.user.GetUserByEmail(l.ctx, userEmail.Email)
+	if err != nil {
+		log.WithError(err).Error("failed to fetch user")
+		apihelpers.Respond(w, http.StatusInternalServerError, nil, "", api_errors.ErrGeneric.Error())
+		return
+	}
+
+	user.IsBanned = true
+	err = l.user.UpdateUser(l.ctx, user)
+	if err != nil {
+		log.WithError(err).Error("failed to ban user")
+		apihelpers.Respond(w, http.StatusInternalServerError, nil, "", api_errors.ErrGeneric.Error())
+		return
+	}
+
+	apihelpers.Respond(w, http.StatusOK, nil, "banned user successfuly", "")
+}
