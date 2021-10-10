@@ -20,9 +20,8 @@ type JoinRoomRequest struct {
 }
 
 type GetJoinedRoomRequest struct {
-	RoomID         primitive.ObjectID `bson:"roomID" json:"roomID"`
-	RoomName       string             `bson:"roomName" json:"roomName" validate:"required"`
-	PreviewMessage string             `json:"previewMessage" bson:"-"`
+	RoomID   primitive.ObjectID `bson:"roomID" json:"roomID"`
+	RoomName string             `bson:"roomName" json:"roomName" validate:"required"`
 }
 
 type JoinRoomRequestList struct {

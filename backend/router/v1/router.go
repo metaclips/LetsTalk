@@ -39,7 +39,7 @@ func StartV1() {
 
 	db := client.Database(apihelper.Config.DbName)
 
-	database.InitDatabaseIndexing(ctx, db)
+	go database.InitDatabaseIndexing(ctx, db)
 
 	usersCollection := database.NewMongoStore(db, constants.UserCollection)
 	roomRequestCollection := database.NewMongoStore(db, constants.RoomRequestCollection)

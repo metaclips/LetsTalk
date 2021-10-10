@@ -60,15 +60,19 @@ func (b RoomRequest) GetUserAssociates(ctx context.Context, userID primitive.Obj
 	}
 
 	associates := make(map[primitive.ObjectID]bool)
-	for _, room := range rooms {
-		var users []v1resources.JoinRoomRequest
-		if err := b.db.FindMany(ctx, bson.M{"roomID": room.RoomID, "accepted": true, "exitedRoom": false, "rejectRoom": false}, nil, nil, 0, 0, &users); err != nil {
-			return nil, err
-		}
+	roomsBSON := make([]bson.M, len(rooms))
 
-		for _, user := range users {
-			associates[user.UserToJoinID] = true
-		}
+	for i, room := range rooms {
+		roomsBSON[i] = bson.M{"roomID": room.RoomID, "accepted": true, "exitedRoom": false, "rejectRoom": false}
+	}
+
+	var users []v1resources.JoinRoomRequest
+	if err := b.db.FindMany(ctx, bson.M{"$or": roomsBSON}, nil, nil, 0, 0, &users); err != nil {
+		return nil, err
+	}
+
+	for _, user := range users {
+		associates[user.UserToJoinID] = true
 	}
 
 	userIDs := make([]primitive.ObjectID, 0)

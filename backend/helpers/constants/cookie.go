@@ -1,5 +1,6 @@
 package constants
 
 const (
-	UserCookieName = "User"
+	UserCookieName  = "User"
+	AdminCookieName = "Admin"
 )

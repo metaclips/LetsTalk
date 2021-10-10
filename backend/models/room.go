@@ -38,13 +38,17 @@ func (b Room) UpdateRoom(ctx context.Context, room *v1resources.Room) error {
 }
 
 func (b Room) RetrieveJoinedRooms(ctx context.Context, IDs []v1resources.GetJoinedRoomRequest, limit, skip int) (*v1resources.RoomList, error) {
-	rooms := make([]v1resources.Room, len(IDs))
+	rooms := []v1resources.Room{}
+
+	bsonIDs := make([]bson.M, len(IDs))
 
 	for i, id := range IDs {
-		err := b.db.FindByID(ctx, id.RoomID, nil, &rooms[i])
-		if err != nil {
-			return nil, err
-		}
+		bsonIDs[i] = bson.M{"_id": id.RoomID}
+	}
+
+	err := b.db.FindMany(ctx, bson.M{"$or": bsonIDs}, nil, bson.M{"_id": -1}, 0, 0, &rooms)
+	if err != nil {
+		return nil, err
 	}
 
 	return &v1resources.RoomList{

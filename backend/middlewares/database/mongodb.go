@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"encoding/json"
+	"log"
 	"time"
 
 	"github.com/metaclips/LetsTalk/backend/helpers/constants"
@@ -26,29 +27,20 @@ func NewMongoStore(db *mongo.Database, collection string) Database {
 }
 
 func InitDatabaseIndexing(ctx context.Context, db *mongo.Database) {
-	_, _ = db.Collection(constants.RoomRequestCollection).Indexes().CreateOne(ctx, mongo.IndexModel{
+	_, err := db.Collection(constants.RoomRequestCollection).Indexes().CreateOne(ctx, mongo.IndexModel{
 		Keys:    bsonx.Doc{bsonx.Elem{Key: "userToJoinID", Value: bsonx.Int32(1)}, bsonx.Elem{Key: "roomID", Value: bsonx.Int32(1)}, bsonx.Elem{Key: "deletedAt", Value: bsonx.Int32(1)}},
 		Options: options.Index().SetUnique(true),
-	},
-	)
+	})
+	if err != nil {
+		log.Fatalln(1, err)
+	}
 
-	_, _ = db.Collection(constants.UserCollection).Indexes().CreateOne(ctx, mongo.IndexModel{
+	_, err = db.Collection(constants.UserCollection).Indexes().CreateOne(ctx, mongo.IndexModel{
 		Keys:    bsonx.Doc{bsonx.Elem{Key: "email", Value: bsonx.Int32(1)}, bsonx.Elem{Key: "deletedAt", Value: bsonx.Int32(1)}},
 		Options: options.Index().SetUnique(true),
-	},
-	)
-
-	_, _ = db.Collection(constants.UserCollection).Indexes().CreateOne(ctx, mongo.IndexModel{
-		Keys:    bsonx.Doc{bsonx.Elem{Key: "matricNumber", Value: bsonx.Int32(1)}, bsonx.Elem{Key: "deletedAt", Value: bsonx.Int32(1)}},
-		Options: options.Index().SetUnique(true).SetPartialFilterExpression(bson.D{bson.E{Key: "matricNumber", Value: bson.D{bson.E{Key: "$type", Value: "string"}}}}),
-	},
-	)
-
-	{
-		_, _ = db.Collection(constants.UserCollection).Indexes().CreateOne(ctx, mongo.IndexModel{
-			Keys: bson.M{"email": "text", "firstName": "text", "lastName": "text", "matricNumber": "text", "department": "text", "faculty": "text", "year": "text"},
-		},
-		)
+	})
+	if err != nil {
+		log.Fatalln(2, err)
 	}
 }
 

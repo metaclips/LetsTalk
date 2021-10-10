@@ -26,7 +26,7 @@ func (m Messages) NewMessage(ctx context.Context, message *v1resources.Message) 
 func (m Messages) RetrieveMessagesForRoom(ctx context.Context, roomID primitive.ObjectID, limit, skip int) (*v1resources.MessagesList, error) {
 	var messages []v1resources.Message
 
-	err := m.db.FindMany(ctx, bson.M{"roomID": roomID}, nil, bson.M{"_id": -1}, int64(limit), int64(skip), &messages)
+	err := m.db.FindMany(ctx, bson.M{"roomID": roomID}, nil, bson.M{"_id": 1}, int64(limit), int64(skip), &messages)
 	if err != nil {
 		return nil, err
 	}
@@ -44,7 +44,7 @@ func (m Messages) RetrieveMessagesForRoom(ctx context.Context, roomID primitive.
 
 func (m Messages) GetMessagePreview(ctx context.Context, roomID primitive.ObjectID) (*v1resources.Message, error) {
 	message := v1resources.Message{}
-	err := m.db.FindOne(ctx, bson.M{"roomID": roomID}, bson.M{"_id": 1}, nil, &message)
+	err := m.db.FindOne(ctx, bson.M{"roomID": roomID}, bson.M{"_id": -1}, nil, &message)
 	if err != nil {
 		return nil, err
 	}

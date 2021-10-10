@@ -278,11 +278,39 @@ func (g *gorrilaWebsocket) loadUserContent(user primitive.ObjectID) {
 		return
 	}
 
+	joinedRoomList, err := g.room.RetrieveJoinedRooms(g.ctx, acceptedRooms.Data, 0, 0)
+	if err != nil {
+		log.Errorln("error checking joined room: ", err)
+		return
+	}
+
 	userAssociates, err := g.roomRequest.GetUserAssociates(g.ctx, user)
 	if err != nil {
 		log.Errorln("error retrieving users associates:", err)
 		return
 	}
+
+	associates, err := g.user.GetManyAssociates(g.ctx, userAssociates)
+	if err != nil {
+		log.Errorln("unable to get user associate details", err)
+		return
+	}
+
+	associatesToNameMap := map[string]string{}
+
+	for _, associate := range associates {
+		associatesToNameMap[associate.ID.Hex()] = associate.FirstName + " " + associate.LastName
+	}
+
+	onlineAssociates := []primitive.ObjectID{}
+
+	g.hub.users.mutex.RLock()
+	for _, associate := range userAssociates {
+		if _, ok := g.hub.users.roomUsers[associate]; ok {
+			onlineAssociates = append(onlineAssociates, associate)
+		}
+	}
+	g.hub.users.mutex.RUnlock()
 
 	unacceptedRooms, err := g.roomRequest.RetrieveUnacceptedRooms(g.ctx, user, 0, 0)
 	if err != nil {
@@ -290,12 +318,23 @@ func (g *gorrilaWebsocket) loadUserContent(user primitive.ObjectID) {
 		return
 	}
 
+	for i, room := range joinedRoomList.Data {
+		message, err := g.messages.GetMessagePreview(g.ctx, room.ID)
+		if err != nil {
+			log.Errorln("error getting message preview: ", err)
+			return
+		}
+
+		joinedRoomList.Data[i].PreviewMessage = message.Message
+	}
+
 	// Broadcast to user that is to join, that there's a request.
 	g.sendMessage(map[string]interface{}{
-		"msgType":      constants.WebsocketOpenMsgType,
-		"joinedRooms":  acceptedRooms,
-		"joinRequests": unacceptedRooms,
-		"associates":   userAssociates,
+		"msgType":          constants.WebsocketOpenMsgType,
+		"joinedRooms":      joinedRoomList,
+		"joinRequests":     unacceptedRooms,
+		"onlineAssociates": onlineAssociates,
+		"associates":       associatesToNameMap,
 	}, user)
 }
 
@@ -382,6 +421,7 @@ func (h *gorrilaWebsocket) newMessage(userID primitive.ObjectID, msg []byte) {
 	var message v1resources.Message
 
 	if err := unmarshalTo(msg, &message); err != nil {
+		log.Errorln("error unmarshalling message:", err)
 		// ToDo: Return error message.
 		return
 	}
@@ -613,10 +653,7 @@ func (h *gorrilaWebsocket) createNewRoom(userID primitive.ObjectID, msg []byte) 
 		return
 	}
 
-	if room.CreateByUserID != userID {
-		// ToDo: Return error message.
-		return
-	}
+	room.CreateByUserID = userID
 
 	room.ID = primitive.NewObjectID()
 	room.CreatedAt = time.Now()
@@ -648,6 +685,9 @@ func (h *gorrilaWebsocket) createNewRoom(userID primitive.ObjectID, msg []byte) 
 		return
 	}
 
+	infoMsg := fmt.Sprintf("%s %s (%s) has joined the room.", userToJoin.FirstName, userToJoin.LastName, userToJoin.Email)
+	room.PreviewMessage = infoMsg
+
 	if err := h.sendMessage(map[string]interface{}{
 		"msgType": constants.JoinRoomMsgType,
 		"data":    room,
@@ -656,7 +696,7 @@ func (h *gorrilaWebsocket) createNewRoom(userID primitive.ObjectID, msg []byte) 
 		return
 	}
 
-	h.saveMessageAndNotifyRoom(room.ID, userID, fmt.Sprintf("%s %s (%s) has joined the room.", userToJoin.FirstName, userToJoin.LastName, userToJoin.Email))
+	h.saveMessageAndNotifyRoom(room.ID, userID, infoMsg)
 }
 
 func (h *gorrilaWebsocket) broadcastOnlineStatusToAllUserRoom(userID primitive.ObjectID, isOnline bool) {

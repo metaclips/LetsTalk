@@ -14,9 +14,9 @@
         "KeyPath": "key.pem"
     },
     "CorsAllowedOrigins": [
-        "https://127.0.0.1:8080"
+        "*"
     ],
-    "DbHost": "mongodb://0.0.0.0:27017/test",
+    "DbHost": "mongodb+srv://admin:admin@cluster0.huyp5.mongodb.net/test?retryWrites=true&w=majority",
     "Email": "utimichael9@gmail.com",
     "DbName": "test",
     "DropboxToken": "",

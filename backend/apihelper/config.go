@@ -26,13 +26,15 @@ type configuration struct {
 
 	CorsAllowedOrigins []string
 
+	AdminEmail               string
+	AdminPassword            string
 	Email                    string
 	EmailPassword            string
 	DbHost                   string
 	DbName                   string
 	DropboxToken             string
-	EnableClassSessionRecord bool // If EnableClassSessionUpload is set to true and no token is provided, files are saved to DB using GridFS.
 	Port                     string
+	EnableClassSessionRecord bool // If EnableClassSessionUpload is set to true and no token is provided, files are saved to DB using GridFS.
 }
 
 // Config contains application environment variables.

@@ -14,13 +14,15 @@
         "KeyPath": "key.pem"
     },
     "CorsAllowedOrigins": [
-        "https://127.0.0.1:8080"
+        "*"
     ],
-    "Email": "myemail@gmail.com",
+    "AdminPassword": "",
+    "AdminEmail": "michaeluti6@gmail.com",
+    "Email": "",
     "EmailPassword": "",
-    "DbHost": "mongodb://root:letstalk@localhost:27017/",
-    "DbName": "LetsTalkDB",
+    "DbHost": "mongodb+srv://admin:admin@cluster0.huyp5.mongodb.net/test?retryWrites=true&w=majority",
+    "DbName": "LetsTalkTest",
     "DropboxToken": "",
     "EnableClassSessionRecord": true,
-    "Port": ""
+    "Port": "8080"
 }

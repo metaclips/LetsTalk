@@ -29,6 +29,22 @@ func (u User) UpdateUser(ctx context.Context, user *v1resources.UserData) error 
 	return u.db.UpdateByID(ctx, user.ID, user)
 }
 
+func (u User) GetManyAssociates(ctx context.Context, associates []primitive.ObjectID) ([]v1resources.AssociateData, error) {
+	data := make([]bson.M, len(associates))
+	for i, associate := range associates {
+		data[i] = bson.M{"_id": associate}
+	}
+
+	val := []v1resources.AssociateData{}
+
+	err := u.db.FindMany(ctx, bson.M{"$or": data}, nil, nil, 0, 0, &val)
+	if err != nil {
+		return nil, err
+	}
+
+	return val, nil
+}
+
 func (u User) GetUserByID(ctx context.Context, ID primitive.ObjectID) (*v1resources.UserData, error) {
 	user := v1resources.UserData{}
 	if err := u.db.FindByID(ctx, ID, nil, &user); err != nil {
@@ -67,14 +83,14 @@ func (u User) GetRegisteredMinors(ctx context.Context) (*v1resources.PrunedUserL
 func (u User) GetUsersPrunedData(ctx context.Context, paging *paging.Paging) (*v1resources.PrunedUserList, error) {
 	users := make([]v1resources.PrunedUser, 0)
 
-	count, err := paging.PagedRequest(ctx, nil, u.db, &users)
+	err := u.db.FindMany(ctx, bson.M{"email": bson.M{"$regex": primitive.Regex{Pattern: "003"}}}, nil, nil, 0, 0, &users)
 	if err != nil {
 		return nil, err
 	}
 
 	return &v1resources.PrunedUserList{
 		Data:  users,
-		Count: count,
+		Count: len(users),
 	}, nil
 }
 

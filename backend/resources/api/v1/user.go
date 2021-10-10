@@ -9,6 +9,7 @@ import (
 )
 
 type UserRegistration struct {
+	ID           primitive.ObjectID `bson:"_id" json:"-"`
 	Email        string             `bson:"email" json:"email" validate:"required,email"`
 	FirstName    string             `bson:"firstName" json:"firstName" validate:"required"`
 	LastName     string             `bson:"lastName" json:"lastName" validate:"required"`
@@ -74,4 +75,10 @@ type UserData struct {
 	MatricNumber *string            `bson:"matricNumber" json:"matricNumber"`
 	CreatedAt    time.Time          `bson:"createdAt" json:"-"`
 	DeletedAt    *time.Time         `bson:"deletedAt" json:"-"`
+}
+
+type AssociateData struct {
+	ID        primitive.ObjectID `bson:"_id" json:"_id"`
+	FirstName string             `bson:"firstName" json:"firstName"`
+	LastName  string             `bson:"lastName" json:"lastName"`
 }
