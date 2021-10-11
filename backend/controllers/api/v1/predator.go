@@ -2,19 +2,23 @@ package v1controller
 
 import (
 	"context"
+	"net/http"
 	"time"
 
+	"github.com/julienschmidt/httprouter"
+	apihelpers "github.com/metaclips/LetsTalk/backend/apihelper"
 	app_context "github.com/metaclips/LetsTalk/backend/middlewares/context"
 	"github.com/metaclips/LetsTalk/backend/models"
 	log "github.com/sirupsen/logrus"
 )
 
 type PredatorController struct {
-	user        models.User
-	message     models.Messages
-	roomRequest models.RoomRequest
-	ctx         context.Context
-	cancelFunc  context.CancelFunc
+	user         models.User
+	message      models.Messages
+	roomRequest  models.RoomRequest
+	ctx          context.Context
+	cancelFunc   context.CancelFunc
+	checkChannel chan struct{}
 }
 
 func NewPredatorController(checkChannel chan struct{}, user models.User, message models.Messages, roomRequest models.RoomRequest) *PredatorController {
@@ -62,6 +66,22 @@ func NewPredatorController(checkChannel chan struct{}, user models.User, message
 	}()
 
 	return &PredatorController{
-		user, message, roomRequest, ctx, cancelFunc,
+		user, message, roomRequest, ctx, cancelFunc, checkChannel,
+	}
+}
+
+func (p *PredatorController) StartPredatorSearch(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+	var failed bool
+
+	select {
+	case p.checkChannel <- struct{}{}:
+	default:
+		failed = true
+	}
+
+	if failed {
+		apihelpers.Respond(w, http.StatusOK, nil, "Predator Search Already Started", "")
+	} else {
+		apihelpers.Respond(w, http.StatusOK, nil, "Predator Search Started", "")
 	}
 }

@@ -62,8 +62,12 @@ func StartV1() {
 	loginController := v1controller.NewLoginController(usersModel, usersCookie)
 	usersController := v1controller.NewRegistrationController(usersModel, &mailer)
 	wsController := v1controller.NewWebsocketController(usersModel, apoWebsocket)
+	adminController := v1controller.NewAdminLoginController(usersModel, roomRequestModel, messageModel)
 
-	router := NewRouter(homeController, loginController, usersController, wsController)
+	checker := make(chan struct{})
+	predator := v1controller.NewPredatorController(checker, usersModel, messageModel, roomRequestModel)
+
+	router := NewRouter(homeController, loginController, usersController, wsController, adminController, predator)
 
 	port := apihelper.Config.Port
 	if port == "" {
@@ -115,7 +119,8 @@ func StartV1() {
 }
 
 func NewRouter(home *v1controller.HomepageController, login *v1controller.LoginController,
-	registration *v1controller.RegistrationController, ws *v1controller.WebsocketController) *httprouter.Router {
+	registration *v1controller.RegistrationController, ws *v1controller.WebsocketController,
+	admin *v1controller.AdminLoginController, predator *v1controller.PredatorController) *httprouter.Router {
 
 	router := httprouter.New()
 
@@ -128,6 +133,14 @@ func NewRouter(home *v1controller.HomepageController, login *v1controller.LoginC
 	router.GET("/v1/helpers/departments", v1controller.GetDepartments)
 	router.GET("/v1/helpers/faculties", v1controller.GetFaculties)
 
+	router.POST("/v1/admin/login", admin.AdminLogin)
+	router.POST("/v1/admin/ban", admin.AdminBanUser)
+	router.POST("/v1/admin/unban", admin.AdminUnbanUser)
+	router.POST("/v1/admin/getBannedUser", admin.AdminGetBannedUsers)
+	router.POST("/v1/admin/getUser", admin.AdminGetUserByEmail)
+	router.POST("/v1/admin/getMinors", admin.AdminGetMinorUsers)
+	router.POST("/v1/admin/verify", admin.VerifyUser)
+	router.POST("/v1/admin/predatorSearch", predator.StartPredatorSearch)
 	return router
 }
 

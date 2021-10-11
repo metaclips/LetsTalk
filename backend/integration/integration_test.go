@@ -102,8 +102,12 @@ func integration() {
 	loginController := v1controller.NewLoginController(usersModel, usersCookie)
 	usersController := v1controller.NewRegistrationController(usersModel, mocker)
 	wsController := v1controller.NewWebsocketController(usersModel, apoWebsocket)
+	adminController := v1controller.NewAdminLoginController(usersModel, roomRequestModel, messagesModel)
 
-	router := v1router.NewRouter(homeController, loginController, usersController, wsController)
+	checker := make(chan struct{})
+	predator := v1controller.NewPredatorController(checker, usersModel, messagesModel, roomRequestModel)
+
+	router := v1router.NewRouter(homeController, loginController, usersController, wsController, adminController, predator)
 
 	testHandler.server = httptest.NewServer(router)
 	testHandler.client = testHandler.server.Client()

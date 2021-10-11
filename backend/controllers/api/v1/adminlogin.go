@@ -3,7 +3,9 @@ package v1controller
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 
@@ -14,7 +16,6 @@ import (
 	"github.com/metaclips/LetsTalk/backend/helpers/paging"
 	"github.com/metaclips/LetsTalk/backend/helpers/validation"
 	app_context "github.com/metaclips/LetsTalk/backend/middlewares/context"
-	"github.com/metaclips/LetsTalk/backend/middlewares/cookies"
 	"github.com/metaclips/LetsTalk/backend/models"
 	v1resources "github.com/metaclips/LetsTalk/backend/resources/api/v1"
 	log "github.com/sirupsen/logrus"
@@ -22,20 +23,24 @@ import (
 )
 
 type AdminLoginController struct {
-	ctx        context.Context
-	cancelFunc context.CancelFunc
-	cookie     cookies.Cookies
+	ctx         context.Context
+	cancelFunc  context.CancelFunc
+	user        models.User
+	roomRequest models.RoomRequest
+	messages    models.Messages
 }
 
-func NewAdminLoginController(user models.User, cookies cookies.Cookies) *AdminLoginController {
+func NewAdminLoginController(user models.User, roomRequest models.RoomRequest, messages models.Messages) *AdminLoginController {
 	ctx, cancelFunc := app_context.CreateChildCancelContext()
 	return &AdminLoginController{
-		ctx, cancelFunc, cookies,
+		ctx, cancelFunc, user, roomRequest, messages,
 	}
 }
 
+var adminUUID primitive.ObjectID
+
 // TODO: We should delete this
-func (l *LoginController) AdminLogin(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+func (l *AdminLoginController) AdminLogin(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
 	login := v1resources.UserLogin{}
 	decoder := json.NewDecoder(req.Body)
 	if err := decoder.Decode(&login); err != nil {
@@ -54,24 +59,11 @@ func (l *LoginController) AdminLogin(w http.ResponseWriter, req *http.Request, _
 		return
 	}
 
-	cookie, uuid, err := l.cookie.GenerateCookie(l.ctx, login.Email, constants.AdminCookieName)
-	if err != nil {
-		log.Errorln("error generating cookies for admin: ", err)
-		status, errVal := getStatusAndErr(err)
-		apihelpers.Respond(w, status, nil, "", errVal)
-		return
-	}
-
-	id, err := primitive.ObjectIDFromHex(uuid)
-	if err != nil {
-		log.Errorln("error creating admin ID:", err)
-		apihelpers.Respond(w, http.StatusInternalServerError, nil, "", err.Error())
-		return
-	}
+	adminUUID = primitive.NewObjectID()
 
 	apihelpers.Respond(w, http.StatusOK, v1resources.LoginResponse{
-		Token:  cookie,
-		UserID: id,
+		Token:  adminUUID.Hex(),
+		UserID: adminUUID,
 	}, "successful login", "")
 }
 
@@ -81,7 +73,7 @@ type banUser struct {
 }
 
 // TODO(metaclips): send reason banned to all the groups the user is in
-func (l *LoginController) AdminBanUser(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+func (l *AdminLoginController) AdminBanUser(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
 	banUser := &banUser{}
 	if err := json.NewDecoder(req.Body).Decode(banUser); err != nil {
 		log.Errorln("error decoding ban data: ", err)
@@ -101,6 +93,27 @@ func (l *LoginController) AdminBanUser(w http.ResponseWriter, req *http.Request,
 		return
 	}
 
+	rooms, err := l.roomRequest.RetrieveAcceptedJoinRequest(l.ctx, user.ID, 0, 0)
+	if err != nil {
+		log.Errorln("error getting users associates:", err)
+		return
+	}
+
+	for _, room := range rooms.Data {
+		data := v1resources.Message{
+			ID:        primitive.NewObjectID(),
+			RoomID:    room.RoomID,
+			UserID:    user.ID,
+			Message:   fmt.Sprintf("I %s %s [%s] was banned from the platform: Reason %s", user.FirstName, user.LastName, user.Email, banUser.ReasonBanned),
+			Type:      constants.MessageTypeMessage,
+			CreatedAt: time.Now(),
+		}
+
+		if err := l.messages.NewMessage(l.ctx, &data); err != nil {
+			log.Errorln("error sending banned message to room:", err)
+		}
+	}
+
 	user.IsBanned = true
 	err = l.user.UpdateUser(l.ctx, user)
 	if err != nil {
@@ -114,11 +127,11 @@ func (l *LoginController) AdminBanUser(w http.ResponseWriter, req *http.Request,
 
 type unbanUser struct {
 	Email          string `json:"email"`
-	ReasonUnbanned string `json:"reasonBanned"`
+	ReasonUnbanned string `json:"reasonUnBanned"`
 }
 
 // TODO(metaclips): send reason unbanned to all the groups the user is in
-func (l *LoginController) AdminUnbanUser(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+func (l *AdminLoginController) AdminUnbanUser(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
 	unbanUser := &unbanUser{}
 	if err := json.NewDecoder(req.Body).Decode(unbanUser); err != nil {
 		log.WithError(err).Error("error decoding unban data")
@@ -138,6 +151,27 @@ func (l *LoginController) AdminUnbanUser(w http.ResponseWriter, req *http.Reques
 		return
 	}
 
+	rooms, err := l.roomRequest.RetrieveAcceptedJoinRequest(l.ctx, user.ID, 0, 0)
+	if err != nil {
+		log.Errorln("error getting users associates:", err)
+		return
+	}
+
+	for _, room := range rooms.Data {
+		data := v1resources.Message{
+			ID:        primitive.NewObjectID(),
+			RoomID:    room.RoomID,
+			UserID:    user.ID,
+			Message:   fmt.Sprintf("I %s %s [%s] have been unbanned from the platform: Reason %s", user.FirstName, user.LastName, user.Email, unbanUser.ReasonUnbanned),
+			Type:      constants.MessageTypeMessage,
+			CreatedAt: time.Now(),
+		}
+
+		if err := l.messages.NewMessage(l.ctx, &data); err != nil {
+			log.Errorln("error sending banned message to room:", err)
+		}
+	}
+
 	user.IsBanned = false
 	err = l.user.UpdateUser(l.ctx, user)
 	if err != nil {
@@ -149,7 +183,38 @@ func (l *LoginController) AdminUnbanUser(w http.ResponseWriter, req *http.Reques
 	apihelpers.Respond(w, http.StatusOK, user, "unbanned user successfully", "")
 }
 
-func (l *LoginController) AdminGetBannedUsers(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+func (l *AdminLoginController) VerifyUser(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+	unbanUser := &unbanUser{}
+	if err := json.NewDecoder(req.Body).Decode(unbanUser); err != nil {
+		log.WithError(err).Error("error decoding unban data")
+		apihelpers.Respond(w, http.StatusInternalServerError, nil, "", api_errors.ErrGeneric.Error())
+		return
+	}
+
+	user, err := l.user.GetUserByEmail(l.ctx, unbanUser.Email)
+	if err != nil {
+		log.WithError(err).Error("failed to fetch user")
+		apihelpers.Respond(w, http.StatusInternalServerError, nil, "", api_errors.ErrGeneric.Error())
+		return
+	}
+
+	if user.Verified {
+		apihelpers.Respond(w, http.StatusOK, nil, "user already verified", "")
+		return
+	}
+
+	user.Verified = true
+	err = l.user.UpdateUser(l.ctx, user)
+	if err != nil {
+		log.WithError(err).Error("failed to unban user")
+		apihelpers.Respond(w, http.StatusInternalServerError, nil, "", api_errors.ErrGeneric.Error())
+		return
+	}
+
+	apihelpers.Respond(w, http.StatusOK, user, "user verified successfully", "")
+}
+
+func (l *AdminLoginController) AdminGetBannedUsers(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
 	page := &paging.Paging{}
 	if err := json.NewDecoder(req.Body).Decode(page); err != nil {
 		log.WithError(err).Error("error decoding page data")
@@ -171,7 +236,7 @@ func (l *LoginController) AdminGetBannedUsers(w http.ResponseWriter, req *http.R
 	apihelpers.Respond(w, http.StatusOK, bannedUsers, "fetched banned users successfully", "")
 }
 
-func (l *LoginController) AdminGetUserByEmail(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+func (l *AdminLoginController) AdminGetUserByEmail(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
 	userEmail := &unbanUser{}
 	if err := json.NewDecoder(req.Body).Decode(userEmail); err != nil {
 		log.WithError(err).Error("error decoding user email data")
@@ -194,7 +259,7 @@ func (l *LoginController) AdminGetUserByEmail(w http.ResponseWriter, req *http.R
 	apihelpers.Respond(w, http.StatusOK, user, "fetched user successfully", "")
 }
 
-func (l *LoginController) AdminGetMinorUsers(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+func (l *AdminLoginController) AdminGetMinorUsers(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
 	page := &paging.Paging{}
 	if err := json.NewDecoder(req.Body).Decode(page); err != nil {
 		log.WithError(err).Error("error decoding page data")
